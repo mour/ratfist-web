@@ -141,7 +141,7 @@ fn comm_func<T>(channel_rx: Receiver<TxChannelType>, mut comm: T)
                                            payload_str);
 
                                     if let Some(response_channel) =
-                                        pending_transactions.get(&trans_id) {
+                                        pending_transactions.remove(&trans_id) {
                                         let _ = response_channel.send(payload_str.to_string());
                                     } else {
                                         warn!("Unexpected transition id {}!", trans_id);
