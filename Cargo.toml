@@ -10,4 +10,9 @@ rocket_contrib = "0.1"
 serde = "0.8"
 serde_derive = "0.8"
 serde_json = "0.8"
+log = "0.3"
+serial = "0.3"
 
+
+[features]
+spinner = []
