@@ -1,5 +1,5 @@
 [package]
-name = "ratfist"
+name = "ratfist-server"
 version = "0.1.0"
 authors = ["Ondrej Palenicek <ondrej.palenicek@gmail.com>"]
 
