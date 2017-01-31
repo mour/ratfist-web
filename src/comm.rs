@@ -102,7 +102,14 @@ fn comm_func<T>(channel_rx: Receiver<TxChannelType>, mut comm: T)
             transaction_id_ctr = transaction_id_ctr.wrapping_add(1);
 
             pending_transactions.insert(transaction_id_ctr, resp_tx);
-            let _ = comm.write_all(&msg.into_bytes());
+
+            let mut out = format!("${},{}*", transaction_id_ctr, msg);
+            let csum = calc_checksum(&out[1..(out.len() - 1)]);
+            out.push_str(&format!("{:X}\r\n", csum));
+
+            debug!("server -> mcu: '{}'", &out[..(out.len() - 2)]);
+
+            let _ = comm.write_all(out.as_bytes());
         }
 
 
