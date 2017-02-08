@@ -54,7 +54,7 @@ impl From<OutgoingMessage> for String {
 enum IncomingMessage {
     Plan(u64, Vec<PlanLeg>),
     State(u64, ChannelState),
-    Ret(i64),
+    RetVal(i64),
 }
 
 impl FromStr for IncomingMessage {
@@ -113,10 +113,10 @@ impl FromStr for IncomingMessage {
                         _ => Err(SpinnerError),
                     }
                 }
-                "RET" => {
+                "RET_VAL" => {
                     let ret_val =
                         tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
-                    Ok(IncomingMessage::Ret(ret_val))
+                    Ok(IncomingMessage::RetVal(ret_val))
                 }
                 _ => Err(SpinnerError),
             }
@@ -248,7 +248,7 @@ fn set_channel_state<'a>(id: u64,
                                 &comm)?;
 
     match response_str.parse() {
-        Ok(IncomingMessage::Ret(ret_val)) => {
+        Ok(IncomingMessage::RetVal(ret_val)) => {
             if ret_val == 0 {
                 Ok(Response::build().status(Status::Accepted).finalize())
             } else {
@@ -280,7 +280,7 @@ fn set_plan<'a>(id: u64,
                                 &comm)?;
 
     match response_str.parse() {
-        Ok(IncomingMessage::Ret(ret_val)) => {
+        Ok(IncomingMessage::RetVal(ret_val)) => {
             if ret_val == 0 {
                 Ok(Response::build().status(Status::Accepted).finalize())
             } else {
