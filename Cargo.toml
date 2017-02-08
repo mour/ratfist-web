@@ -4,12 +4,12 @@ version = "0.1.0"
 authors = ["Ondrej Palenicek <ondrej.palenicek@gmail.com>"]
 
 [dependencies]
-rocket = "0.1"
-rocket_codegen = "0.1"
-rocket_contrib = "0.1"
-serde = "0.8"
-serde_derive = "0.8"
-serde_json = "0.8"
+rocket = "0.2"
+rocket_codegen = "0.2"
+rocket_contrib = "0.2"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
 log = "0.3"
 serial = "0.3"
 

@@ -1,3 +1,5 @@
+#![allow(unmounted_route)]
+
 use rocket::Route;
 
 use rocket::Response;
@@ -63,15 +65,22 @@ impl FromStr for IncomingMessage {
         if let Some(msg_type) = tokens.next() {
             match msg_type {
                 "SPIN_PLAN_REPLY" => {
-                    let ch_num = tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
+                    let ch_num =
+                        tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
 
                     let mut plan_legs = Vec::new();
 
                     let mut plan_tokens = tokens.peekable();
 
                     while plan_tokens.peek().is_some() {
-                        let duration_msecs = plan_tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
-                        let target_val_pct = plan_tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
+                        let duration_msecs = plan_tokens.next()
+                            .ok_or(SpinnerError)?
+                            .parse()
+                            .map_err(|_| SpinnerError)?;
+                        let target_val_pct = plan_tokens.next()
+                            .ok_or(SpinnerError)?
+                            .parse()
+                            .map_err(|_| SpinnerError)?;
 
                         plan_legs.push(PlanLeg {
                             target_val_pct: target_val_pct,
@@ -82,12 +91,15 @@ impl FromStr for IncomingMessage {
                     Ok(IncomingMessage::Plan(ch_num, plan_legs))
                 }
                 "SPIN_STATE_REPLY" => {
-                    let ch_num = tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
+                    let ch_num =
+                        tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
 
                     let state_str = tokens.next().ok_or(SpinnerError)?;
 
-                    let pos_in_plan_msecs = tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
-                    let output_val_pct = tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
+                    let pos_in_plan_msecs =
+                        tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
+                    let output_val_pct =
+                        tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
 
                     match state_str {
                         "RUNNING" => {
@@ -102,7 +114,8 @@ impl FromStr for IncomingMessage {
                     }
                 }
                 "RET" => {
-                    let ret_val = tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
+                    let ret_val =
+                        tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
                     Ok(IncomingMessage::Ret(ret_val))
                 }
                 _ => Err(SpinnerError),
@@ -162,7 +175,9 @@ fn send_msg(msg_str: String, comm: &comm::CommChannelTx) -> Result<String, Spinn
 }
 
 
-fn send_channel_state_query_msg(id: u64, comm: &comm::CommChannelTx) -> Result<ChannelState, SpinnerError> {
+fn send_channel_state_query_msg(id: u64,
+                                comm: &comm::CommChannelTx)
+                                -> Result<ChannelState, SpinnerError> {
 
     let response_str = send_msg(OutgoingMessage::GetPlan(id).into(), comm)?;
 
@@ -172,7 +187,9 @@ fn send_channel_state_query_msg(id: u64, comm: &comm::CommChannelTx) -> Result<C
     }
 }
 
-fn send_channel_plan_query_msg(id: u64, comm: &comm::CommChannelTx) -> Result<Vec<PlanLeg>, SpinnerError> {
+fn send_channel_plan_query_msg(id: u64,
+                               comm: &comm::CommChannelTx)
+                               -> Result<Vec<PlanLeg>, SpinnerError> {
 
     let response_str = send_msg(OutgoingMessage::GetState(id).into(), comm)?;
 
@@ -227,7 +244,7 @@ fn set_channel_state<'a>(id: u64,
                          comm: comm::CommChannelTx)
                          -> Result<Response<'a>, SpinnerError> {
 
-    let response_str = send_msg(OutgoingMessage::SetState(id, new_state.unwrap()).into(),
+    let response_str = send_msg(OutgoingMessage::SetState(id, new_state.into_inner()).into(),
                                 &comm)?;
 
     match response_str.parse() {
@@ -243,7 +260,9 @@ fn set_channel_state<'a>(id: u64,
 }
 
 #[get("/channels/<id>/plan")]
-fn query_plan(id: u64, comm: comm::CommChannelTx) -> Result<Option<JSON<Vec<PlanLeg>>>, SpinnerError> {
+fn query_plan(id: u64,
+              comm: comm::CommChannelTx)
+              -> Result<Option<JSON<Vec<PlanLeg>>>, SpinnerError> {
 
     match send_channel_plan_query_msg(id, &comm) {
         Ok(plan) => Ok(Some(JSON(plan))),
@@ -257,7 +276,7 @@ fn set_plan<'a>(id: u64,
                 comm: comm::CommChannelTx)
                 -> Result<Response<'a>, SpinnerError> {
 
-    let response_str = send_msg(OutgoingMessage::SetPlan(id, new_plan.unwrap()).into(),
+    let response_str = send_msg(OutgoingMessage::SetPlan(id, new_plan.into_inner()).into(),
                                 &comm)?;
 
     match response_str.parse() {
@@ -276,10 +295,10 @@ fn set_plan<'a>(id: u64,
 
 pub fn get_routes() -> Vec<Route> {
 
-    routes![query_channels,
-            query_channel,
-            query_channel_state,
-            set_channel_state,
-            query_plan,
-            set_plan]
+                 routes![query_channels,
+                         query_channel,
+                         query_channel_state,
+                         set_channel_state,
+                         query_plan,
+                         set_plan]
 }
