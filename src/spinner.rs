@@ -19,10 +19,10 @@ use comm;
 struct SpinnerError;
 
 pub enum OutgoingMessage {
-    SetState(u64, ChannelCommand),
-    GetState(u64),
-    SetPlan(u64, Vec<PlanLeg>),
-    GetPlan(u64),
+    SetState(u8, ChannelCommand),
+    GetState(u8),
+    SetPlan(u8, Vec<PlanLeg>),
+    GetPlan(u8),
 }
 
 impl From<OutgoingMessage> for String {
@@ -52,9 +52,9 @@ impl From<OutgoingMessage> for String {
 
 
 enum IncomingMessage {
-    Plan(u64, Vec<PlanLeg>),
-    State(u64, ChannelState),
-    RetVal(i64),
+    Plan(u8, Vec<PlanLeg>),
+    State(u8, ChannelState),
+    RetVal(i32),
 }
 
 impl FromStr for IncomingMessage {
@@ -150,7 +150,7 @@ pub struct PlanLeg {
 
 
 
-const NUM_CHANNELS: u64 = 1;
+const NUM_CHANNELS: u8 = 1;
 
 
 
@@ -175,7 +175,7 @@ fn send_msg(msg_str: String, comm: &comm::CommChannelTx) -> Result<String, Spinn
 }
 
 
-fn send_channel_state_query_msg(id: u64,
+fn send_channel_state_query_msg(id: u8,
                                 comm: &comm::CommChannelTx)
                                 -> Result<ChannelState, SpinnerError> {
 
@@ -187,7 +187,7 @@ fn send_channel_state_query_msg(id: u64,
     }
 }
 
-fn send_channel_plan_query_msg(id: u64,
+fn send_channel_plan_query_msg(id: u8,
                                comm: &comm::CommChannelTx)
                                -> Result<Vec<PlanLeg>, SpinnerError> {
 
@@ -204,7 +204,7 @@ fn send_channel_plan_query_msg(id: u64,
 
 #[get("/channels")]
 fn query_channels(comm: comm::CommChannelTx)
-                  -> Result<JSON<HashMap<u64, (ChannelState, Vec<PlanLeg>)>>, SpinnerError> {
+                  -> Result<JSON<HashMap<u8, (ChannelState, Vec<PlanLeg>)>>, SpinnerError> {
     let mut map = HashMap::new();
 
     for ch_num in 0..NUM_CHANNELS {
@@ -217,7 +217,7 @@ fn query_channels(comm: comm::CommChannelTx)
 }
 
 #[get("/channels/<id>")]
-fn query_channel(id: u64,
+fn query_channel(id: u8,
                  comm: comm::CommChannelTx)
                  -> Result<Option<JSON<(ChannelState, Vec<PlanLeg>)>>, SpinnerError> {
 
@@ -228,7 +228,7 @@ fn query_channel(id: u64,
 
 
 #[get("/channels/<id>/state")]
-fn query_channel_state(id: u64,
+fn query_channel_state(id: u8,
                        comm: comm::CommChannelTx)
                        -> Result<Option<JSON<ChannelState>>, SpinnerError> {
 
@@ -239,7 +239,7 @@ fn query_channel_state(id: u64,
 }
 
 #[post("/channels/<id>/state", format = "application/json", data = "<new_state>")]
-fn set_channel_state<'a>(id: u64,
+fn set_channel_state<'a>(id: u8,
                          new_state: JSON<ChannelCommand>,
                          comm: comm::CommChannelTx)
                          -> Result<Response<'a>, SpinnerError> {
@@ -260,7 +260,7 @@ fn set_channel_state<'a>(id: u64,
 }
 
 #[get("/channels/<id>/plan")]
-fn query_plan(id: u64,
+fn query_plan(id: u8,
               comm: comm::CommChannelTx)
               -> Result<Option<JSON<Vec<PlanLeg>>>, SpinnerError> {
 
@@ -271,7 +271,7 @@ fn query_plan(id: u64,
 }
 
 #[put("/channels/<id>/plan", format = "application/json", data = "<new_plan>")]
-fn set_plan<'a>(id: u64,
+fn set_plan<'a>(id: u8,
                 new_plan: JSON<Vec<PlanLeg>>,
                 comm: comm::CommChannelTx)
                 -> Result<Response<'a>, SpinnerError> {
