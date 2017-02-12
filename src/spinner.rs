@@ -32,15 +32,15 @@ impl From<OutgoingMessage> for String {
                 format!("SET_SPIN_STATE,{},{}",
                         channel_id,
                         match *cmd {
-                            ChannelCommand::Start => "START",
-                            ChannelCommand::Stop => "STOP",
+                            ChannelCommand::Start => "RUNNING",
+                            ChannelCommand::Stop => "STOPPED",
                         })
             }
             OutgoingMessage::GetState(channel_id) => format!("GET_SPIN_STATE,{}", channel_id),
             OutgoingMessage::SetPlan(channel_id, ref plan) => {
                 let mut msg = format!("SET_PLAN,{}", channel_id);
                 for leg in plan {
-                    msg = format!("{},{},{}", msg, leg.target_val_pct, leg.duration_msecs);
+                    msg = format!("{},{},{}", msg, leg.duration_msecs, leg.target_val_pct);
                 }
 
                 msg
@@ -179,7 +179,7 @@ fn send_channel_state_query_msg(id: u8,
                                 comm: &comm::CommChannelTx)
                                 -> Result<ChannelState, SpinnerError> {
 
-    let response_str = send_msg(OutgoingMessage::GetPlan(id).into(), comm)?;
+    let response_str = send_msg(OutgoingMessage::GetState(id).into(), comm)?;
 
     match response_str.parse()? {
         IncomingMessage::State(ret_id, ref state) if ret_id == id => Ok(state.clone()),
@@ -191,7 +191,7 @@ fn send_channel_plan_query_msg(id: u8,
                                comm: &comm::CommChannelTx)
                                -> Result<Vec<PlanLeg>, SpinnerError> {
 
-    let response_str = send_msg(OutgoingMessage::GetState(id).into(), comm)?;
+    let response_str = send_msg(OutgoingMessage::GetPlan(id).into(), comm)?;
 
     match response_str.parse()? {
         IncomingMessage::Plan(ret_id, ref plan) if ret_id == id => Ok(plan.clone()),
@@ -295,10 +295,10 @@ fn set_plan<'a>(id: u8,
 
 pub fn get_routes() -> Vec<Route> {
 
-                 routes![query_channels,
-                         query_channel,
-                         query_channel_state,
-                         set_channel_state,
-                         query_plan,
-                         set_plan]
+    routes![query_channels,
+            query_channel,
+            query_channel_state,
+            set_channel_state,
+            query_plan,
+            set_plan]
 }
