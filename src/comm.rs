@@ -105,7 +105,7 @@ fn comm_func<T>(channel_rx: Receiver<TxChannelType>, mut comm: T)
 
             let mut out = format!("${},{}*", transaction_id_ctr, msg);
             let csum = calc_checksum(&out[1..(out.len() - 1)]);
-            out.push_str(&format!("{:X}\r\n", csum));
+            out.push_str(&format!("{:02X}\r\n", csum));
 
             debug!("server -> mcu: '{}'", &out[..(out.len() - 2)]);
 
@@ -131,10 +131,10 @@ fn comm_func<T>(channel_rx: Receiver<TxChannelType>, mut comm: T)
                     ParserState::Receiving => {
                         current_packet.push(ch);
 
-                        if &current_packet[(current_packet.len() - 2)..] == "\r\n" {
+                        let len = current_packet.len();
+                        if len >= 2 && &current_packet[(len - 2)..] == "\r\n" {
 
-                            match process_incoming_msg(&current_packet[..(current_packet.len() -
-                                                           2)]) {
+                            match process_incoming_msg(&current_packet[..(len - 2)]) {
                                 Ok((trans_id, payload_str)) => {
                                     debug!("Received trans id {}, payload {}",
                                            trans_id,
