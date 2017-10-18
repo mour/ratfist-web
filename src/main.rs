@@ -20,6 +20,9 @@ extern crate serial;
 mod spinner;
 
 
+#[cfg(feature = "meteo")]
+mod meteo;
+
 mod comm;
 mod utils;
 
@@ -30,6 +33,9 @@ fn main() {
 
     #[cfg(feature = "spinner")]
     let rocket = rocket.mount("/spinner", spinner::get_routes());
+
+    #[cfg(feature = "meteo")]
+    let rocket = rocket.mount("/meteo", meteo::get_routes());
 
     rocket.launch();
 }
