@@ -1,11 +1,9 @@
-#![allow(unmounted_route)]
-
 use rocket::Route;
 
 use rocket::Response;
 use rocket::http::Status;
 
-use rocket_contrib::JSON;
+use rocket_contrib::Json;
 
 use std::str::FromStr;
 
@@ -204,7 +202,7 @@ fn send_channel_plan_query_msg(id: u8,
 
 #[get("/channels")]
 fn query_channels(comm: comm::CommChannelTx)
-                  -> Result<JSON<HashMap<u8, (ChannelState, Vec<PlanLeg>)>>, SpinnerError> {
+                  -> Result<Json<HashMap<u8, (ChannelState, Vec<PlanLeg>)>>, SpinnerError> {
     let mut map = HashMap::new();
 
     for ch_num in 0..NUM_CHANNELS {
@@ -213,16 +211,16 @@ fn query_channels(comm: comm::CommChannelTx)
                     send_channel_plan_query_msg(ch_num, &comm)?));
     }
 
-    Ok(JSON(map))
+    Ok(Json(map))
 }
 
 #[get("/channels/<id>")]
 fn query_channel(id: u8,
                  comm: comm::CommChannelTx)
-                 -> Result<Option<JSON<(ChannelState, Vec<PlanLeg>)>>, SpinnerError> {
+                 -> Result<Option<Json<(ChannelState, Vec<PlanLeg>)>>, SpinnerError> {
 
 
-    Ok(Some(JSON((send_channel_state_query_msg(id, &comm)?,
+    Ok(Some(Json((send_channel_state_query_msg(id, &comm)?,
                   send_channel_plan_query_msg(id, &comm)?))))
 }
 
@@ -230,17 +228,17 @@ fn query_channel(id: u8,
 #[get("/channels/<id>/state")]
 fn query_channel_state(id: u8,
                        comm: comm::CommChannelTx)
-                       -> Result<Option<JSON<ChannelState>>, SpinnerError> {
+                       -> Result<Option<Json<ChannelState>>, SpinnerError> {
 
     match send_channel_state_query_msg(id, &comm) {
-        Ok(state) => Ok(Some(JSON(state))),
+        Ok(state) => Ok(Some(Json(state))),
         Err(_) => Err(SpinnerError),
     }
 }
 
 #[post("/channels/<id>/state", format = "application/json", data = "<new_state>")]
 fn set_channel_state<'a>(id: u8,
-                         new_state: JSON<ChannelCommand>,
+                         new_state: Json<ChannelCommand>,
                          comm: comm::CommChannelTx)
                          -> Result<Response<'a>, SpinnerError> {
 
@@ -262,17 +260,17 @@ fn set_channel_state<'a>(id: u8,
 #[get("/channels/<id>/plan")]
 fn query_plan(id: u8,
               comm: comm::CommChannelTx)
-              -> Result<Option<JSON<Vec<PlanLeg>>>, SpinnerError> {
+              -> Result<Option<Json<Vec<PlanLeg>>>, SpinnerError> {
 
     match send_channel_plan_query_msg(id, &comm) {
-        Ok(plan) => Ok(Some(JSON(plan))),
+        Ok(plan) => Ok(Some(Json(plan))),
         Err(_) => Err(SpinnerError),
     }
 }
 
 #[put("/channels/<id>/plan", format = "application/json", data = "<new_plan>")]
 fn set_plan<'a>(id: u8,
-                new_plan: JSON<Vec<PlanLeg>>,
+                new_plan: Json<Vec<PlanLeg>>,
                 comm: comm::CommChannelTx)
                 -> Result<Response<'a>, SpinnerError> {
 
