@@ -4,19 +4,26 @@ use std::sync::mpsc::{Sender, Receiver, SendError};
 
 use std::thread;
 
-use rocket::Request;
-use rocket::request::{FromRequest, Outcome};
-use rocket::Outcome::{Success, Failure};
-use rocket::http::Status;
-
 use serial;
 use serial::prelude::*;
 use std::io::{Read, Write};
 
 use std::collections::HashMap;
 
+use std::sync::Mutex;
+
 
 type TxChannelType = (String, Sender<String>);
+
+pub struct CommState(Mutex<CommChannelTx>);
+
+impl CommState {
+    pub fn get_comm_channel(&self) -> CommChannelTx {
+        let comm = self.0.lock().expect("mutex poisoned");
+        comm.clone()
+    }
+}
+
 
 #[derive(Clone)]
 pub struct CommChannelTx(Sender<TxChannelType>);
@@ -30,24 +37,6 @@ impl CommChannelTx {
         Ok(response_rx)
     }
 }
-
-
-// Inject the tx comm channel into each request
-impl<'a, 'r> FromRequest<'a, 'r> for CommChannelTx {
-    type Error = ();
-
-    fn from_request(_: &'a Request<'r>) -> Outcome<Self, Self::Error> {
-        if let &Some(ref comm) = unsafe { &COMM_CHANNEL_TX } {
-            Success(comm.clone())
-        } else {
-            Failure((Status::InternalServerError, ()))
-        }
-    }
-}
-
-static mut COMM_CHANNEL_TX: Option<CommChannelTx> = None;
-
-
 
 
 fn calc_checksum(input: &str) -> u8 {
@@ -161,7 +150,7 @@ fn comm_func<T>(channel_rx: Receiver<TxChannelType>, mut comm: T)
 }
 
 
-pub fn init() -> thread::JoinHandle<()> {
+pub fn init() -> (CommState, thread::JoinHandle<()>) {
     let mut serial_port = serial::open("/dev/ttyUSB0").expect("Could not open serial port.");
 
     let settings = serial::PortSettings {
@@ -174,13 +163,10 @@ pub fn init() -> thread::JoinHandle<()> {
     serial_port.configure(&settings).expect("Could not configure the serial port.");
 
 
-
-
     let (channel_tx, channel_rx) = mpsc::channel();
 
     let join_handle = thread::spawn(|| comm_func(channel_rx, serial_port));
 
-    unsafe { COMM_CHANNEL_TX = Some(CommChannelTx(channel_tx)) };
 
-    join_handle
+    (CommState(Mutex::new(CommChannelTx(channel_tx))), join_handle)
 }

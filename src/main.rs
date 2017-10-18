@@ -1,9 +1,11 @@
 #![feature(plugin, custom_derive)]
-#![feature(drop_types_in_const)]
+#![feature(inclusive_range_syntax)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
 extern crate rocket_contrib;
+
+extern crate regex;
 
 #[macro_use]
 extern crate serde_derive;
@@ -17,12 +19,14 @@ extern crate serial;
 #[cfg(feature = "spinner")]
 mod spinner;
 
+
 mod comm;
+mod utils;
 
 
 fn main() {
-    let _join_handle = comm::init();
-    let rocket = rocket::ignite();
+    let (comm, _join_handle) = comm::init();
+    let rocket = rocket::ignite().manage(comm);
 
     #[cfg(feature = "spinner")]
     let rocket = rocket.mount("/spinner", spinner::get_routes());
