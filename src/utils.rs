@@ -4,7 +4,7 @@ use regex::Regex;
 use rocket::request::FromParam;
 use rocket::http::RawStr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IdRange(HashSet<u32>);
 
 impl<'req> FromParam<'req> for IdRange {
@@ -41,5 +41,14 @@ impl<'req> FromParam<'req> for IdRange {
         }
 
         Ok(range)
+    }
+}
+
+impl IntoIterator for IdRange {
+    type Item = u32;
+    type IntoIter = ::std::collections::hash_set::IntoIter<u32>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
