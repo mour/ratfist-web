@@ -16,7 +16,7 @@ impl<'req> FromParam<'req> for IdRange {
 
         let mut range = IdRange(HashSet::new());
 
-        for term in param.split(",") {
+        for term in param.split(',') {
             let caps = term_regex.captures(term).ok_or(())?;
 
             let from_str = caps.name("from").ok_or(())?.as_str();

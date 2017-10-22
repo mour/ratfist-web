@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 
-type TxChannelType = (String, Sender<String>);
+type MsgAndResponseChannel = (String, Sender<String>);
 
 pub struct CommState(Mutex<CommChannelTx>);
 
@@ -26,10 +26,10 @@ impl CommState {
 
 
 #[derive(Clone)]
-pub struct CommChannelTx(Sender<TxChannelType>);
+pub struct CommChannelTx(Sender<MsgAndResponseChannel>);
 
 impl CommChannelTx {
-    pub fn send(&self, msg: String) -> Result<Receiver<String>, SendError<TxChannelType>> {
+    pub fn send(&self, msg: String) -> Result<Receiver<String>, SendError<MsgAndResponseChannel>> {
         let (response_tx, response_rx) = mpsc::channel();
 
         self.0.send((msg, response_tx))?;
@@ -69,7 +69,7 @@ fn process_incoming_msg(raw_msg: &str) -> Result<(u64, &str), ()> {
     Ok((transaction_id, msg_payload_str))
 }
 
-fn comm_func<T>(channel_rx: Receiver<TxChannelType>, mut comm: T)
+fn comm_func<T>(channel_rx: Receiver<MsgAndResponseChannel>, mut comm: T) -> !
     where T: Read + Write
 {
     let mut transaction_id_ctr: u64 = 0;
