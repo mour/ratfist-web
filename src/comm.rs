@@ -136,7 +136,7 @@ fn comm_func<T>(channel_rx: Receiver<MsgAndResponseChannel>, mut comm: T) -> !
                                         warn!("Unexpected transition id {}!", trans_id);
                                     }
                                 }
-                                Err(e) => warn!("{:?}", e),
+                                Err(_) => warn!("Unexpected response: '{}'", &current_packet[..(len - 2)]),
                             }
 
                             current_packet.clear();
