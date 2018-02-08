@@ -29,23 +29,23 @@ impl From<OutgoingMessage> for String {
     fn from(msg: OutgoingMessage) -> String {
         match msg {
             OutgoingMessage::SetState(channel_id, ref cmd) => {
-                format!("SET_SPIN_STATE,{},{}",
+                format!("SPINNER,SET_STATE,{},{}",
                         channel_id,
                         match *cmd {
                             ChannelCommand::Start => "RUNNING",
                             ChannelCommand::Stop => "STOPPED",
                         })
             }
-            OutgoingMessage::GetState(channel_id) => format!("GET_SPIN_STATE,{}", channel_id),
+            OutgoingMessage::GetState(channel_id) => format!("SPINNER,GET_STATE,{}", channel_id),
             OutgoingMessage::SetPlan(channel_id, ref plan) => {
-                let mut msg = format!("SET_PLAN,{}", channel_id);
+                let mut msg = format!("SPINNER,SET_PLAN,{}", channel_id);
                 for leg in plan {
                     msg = format!("{},{},{}", msg, leg.duration_msecs, leg.target_val_pct);
                 }
 
                 msg
             }
-            OutgoingMessage::GetPlan(channel_id) => format!("GET_PLAN,{}", channel_id),
+            OutgoingMessage::GetPlan(channel_id) => format!("SPINNER,GET_PLAN,{}", channel_id),
         }
     }
 }
@@ -62,9 +62,14 @@ impl FromStr for IncomingMessage {
 
     fn from_str(s: &str) -> Result<IncomingMessage, Self::Err> {
         let mut tokens = s.split(',');
+
+        if tokens.next() != Some("SPINNER") {
+            return Err(SpinnerError);
+        }
+
         if let Some(msg_type) = tokens.next() {
             match msg_type {
-                "SPIN_PLAN_REPLY" => {
+                "PLAN_REPLY" => {
                     let ch_num =
                         tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
 
@@ -90,7 +95,7 @@ impl FromStr for IncomingMessage {
 
                     Ok(IncomingMessage::Plan(ch_num, plan_legs))
                 }
-                "SPIN_STATE_REPLY" => {
+                "STATE_REPLY" => {
                     let ch_num =
                         tokens.next().ok_or(SpinnerError)?.parse().map_err(|_| SpinnerError)?;
 

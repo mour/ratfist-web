@@ -14,6 +14,7 @@ use std::time::Duration;
 #[derive(Debug)]
 struct MeteoError;
 
+#[derive(Debug)]
 pub enum OutgoingMessage {
     GetPressure(u32),
     GetTemperature(u32),
@@ -24,15 +25,15 @@ pub enum OutgoingMessage {
 impl From<OutgoingMessage> for String {
     fn from(msg: OutgoingMessage) -> String {
         match msg {
-            OutgoingMessage::GetPressure(ch) => format!("GET_PRESSURE,{}", ch),
-            OutgoingMessage::GetTemperature(ch) => format!("GET_TEMPERATURE,{}", ch),
-            OutgoingMessage::GetHumidity(ch) => format!("GET_HUMIDITY,{}", ch),
-            OutgoingMessage::GetLightLevel(ch) => format!("GET_LIGHT_LEVEL,{}", ch),
+            OutgoingMessage::GetPressure(ch) => format!("METEO,GET_PRESSURE,{}", ch),
+            OutgoingMessage::GetTemperature(ch) => format!("METEO,GET_TEMPERATURE,{}", ch),
+            OutgoingMessage::GetHumidity(ch) => format!("METEO,GET_HUMIDITY,{}", ch),
+            OutgoingMessage::GetLightLevel(ch) => format!("METEO,GET_LIGHT_LEVEL,{}", ch),
         }
     }
 }
 
-
+#[derive(Debug)]
 enum IncomingMessage {
     Pressure(u32, f32),
     Temperature(u32, f32),
@@ -46,6 +47,9 @@ impl FromStr for IncomingMessage {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut tokens = s.split(',');
+        if tokens.next() != Some("METEO") {
+            return Err(MeteoError);
+        }
 
         if let Some(msg_type) = tokens.next() {
             match msg_type {
