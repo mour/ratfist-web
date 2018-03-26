@@ -12,6 +12,7 @@ use std::collections::HashMap;
 
 use std::sync::Mutex;
 
+use dotenv;
 
 type MsgAndResponseChannel = (String, Sender<String>);
 
@@ -151,7 +152,8 @@ fn comm_func<T>(channel_rx: Receiver<MsgAndResponseChannel>, mut comm: T) -> !
 
 
 pub fn init() -> (CommState, thread::JoinHandle<()>) {
-    let mut serial_port = serial::open("/dev/ttyUSB0").expect("Could not open serial port.");
+    let mut serial_port = serial::open(&dotenv::var("SERIAL_PORT_PATH").expect("missing SERIAL_PORT_PATH env variable"))
+        .expect("could not open serial port");
 
     let settings = serial::PortSettings {
         baud_rate: serial::Baud115200,
