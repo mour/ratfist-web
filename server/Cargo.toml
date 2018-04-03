@@ -1,0 +1,20 @@
+[package]
+name = "ratfist_server"
+version = "0.1.0"
+authors = ["Ondrej Palenicek <ondrej.palenicek@gmail.com>"]
+
+[dependencies]
+rocket = "0.3"
+rocket_codegen = "0.3"
+rocket_contrib = "0.3"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+log = "0.3"
+serial = "0.3"
+regex = "0.2"
+dotenv = "0.11"
+
+[features]
+spinner = []
+meteo = []

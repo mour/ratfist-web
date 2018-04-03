@@ -1,0 +1,11 @@
+[package]
+name = "ratfist_node_stub"
+version = "0.1.0"
+authors = ["Ondrej Palenicek <ondrej.palenicek@gmail.com>"]
+
+[dependencies]
+serial = "0.4"
+clap = "2"
+ctrlc = { version = "3", features = ["termination"] }
+log = "0.4"
+env_logger = "0.5"
