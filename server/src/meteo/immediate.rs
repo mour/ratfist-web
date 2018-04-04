@@ -1,5 +1,4 @@
 
-use rocket::Route;
 use rocket::State;
 use rocket_contrib::Json;
 
@@ -135,7 +134,7 @@ fn transfer(
 
 
 #[get("/<id_range>/pressure")]
-fn query_pressure(
+fn query_current_pressure(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
@@ -160,7 +159,7 @@ fn query_pressure(
 }
 
 #[get("/<id_range>/temperature")]
-fn query_temperature(
+fn query_current_temperature(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
@@ -186,7 +185,7 @@ fn query_temperature(
 
 
 #[get("/<id_range>/humidity")]
-fn query_humidity(
+fn query_current_humidity(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
@@ -212,7 +211,7 @@ fn query_humidity(
 
 
 #[get("/<id_range>/light_level")]
-fn query_light_level(
+fn query_current_light_level(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
@@ -234,15 +233,4 @@ fn query_light_level(
     }
 
     Ok(Json(press_map))
-}
-
-
-
-pub fn get_routes() -> Vec<Route> {
-    routes![
-        query_pressure,
-        query_temperature,
-        query_humidity,
-        query_light_level,
-    ]
 }
