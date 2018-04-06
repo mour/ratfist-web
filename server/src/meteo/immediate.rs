@@ -4,14 +4,13 @@ use rocket_contrib::Json;
 
 use comm;
 
+use meteo::MeteoError;
+
 use utils::IdRange;
 
 use std::str::FromStr;
 use std::collections::HashMap;
 use std::time::Duration;
-
-#[derive(Debug)]
-struct MeteoError;
 
 #[derive(Debug)]
 pub enum OutgoingMessage {
