@@ -18,6 +18,8 @@ extern crate serial;
 
 extern crate dotenv;
 
+extern crate chrono;
+
 #[cfg(feature = "spinner")]
 mod spinner;
 

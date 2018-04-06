@@ -1,8 +1,13 @@
 use std::collections::HashSet;
 use regex::Regex;
 
+use chrono::prelude::*;
+
 use rocket::request::FromParam;
+use rocket::request::FromFormValue;
 use rocket::http::RawStr;
+
+use std::ops::Deref;
 
 #[derive(Debug, Clone)]
 pub struct IdRange(HashSet<u32>);
@@ -50,5 +55,38 @@ impl IntoIterator for IdRange {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
+    }
+}
+
+
+
+#[derive(Debug, Serialize)]
+pub struct DateTimeUtc(DateTime<Utc>);
+
+impl Deref for DateTimeUtc {
+    type Target = DateTime<Utc>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(FromForm, Debug)]
+pub struct TimeRangeExplicitTimes {
+    pub from: DateTimeUtc,
+    pub to: DateTimeUtc
+}
+
+#[derive(FromForm, Debug)]
+pub struct TimeRangeOptionalEndTime {
+    pub from: DateTimeUtc,
+    pub to: Option<DateTimeUtc>
+}
+
+impl<'v> FromFormValue<'v> for DateTimeUtc {
+    type Error = &'v RawStr;
+
+    fn from_form_value(form_value: &'v RawStr) -> Result<DateTimeUtc, &'v RawStr> {
+        Ok(DateTimeUtc(form_value.parse::<DateTime<Utc>>().map_err(|_| form_value)?))
     }
 }
