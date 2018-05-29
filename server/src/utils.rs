@@ -1,13 +1,22 @@
-use std::collections::HashSet;
 use regex::Regex;
+use std::collections::HashSet;
 
 use chrono::prelude::*;
 
-use rocket::request::FromParam;
-use rocket::request::FromFormValue;
 use rocket::http::RawStr;
+use rocket::request::FromFormValue;
+use rocket::request::FromParam;
 
 use std::ops::Deref;
+
+use diesel::deserialize::{self, FromSql};
+use diesel::serialize::{self, Output, ToSql};
+use diesel::sql_types::BigInt;
+use diesel::sqlite::Sqlite;
+use diesel::backend::Backend;
+
+use std::io::Write;
+
 
 #[derive(Debug, Clone)]
 pub struct IdRange(HashSet<u32>);
@@ -16,7 +25,6 @@ impl<'req> FromParam<'req> for IdRange {
     type Error = ();
 
     fn from_param(param: &'req RawStr) -> Result<Self, Self::Error> {
-
         let term_regex = Regex::new("(?P<from>[0-9]+)(?::(?P<to>[0-9]+))?").expect("invalid regex");
 
         let mut range = IdRange(HashSet::new());
@@ -30,16 +38,11 @@ impl<'req> FromParam<'req> for IdRange {
             if let Some(to_match) = caps.name("to") {
                 let to = to_match.as_str().parse().map_err(|_| ())?;
 
-                let (from, to) = if from <= to {
-                    (from, to)
-                } else {
-                    (to, from)
-                };
+                let (from, to) = if from <= to { (from, to) } else { (to, from) };
 
                 for i in from..=to {
                     range.0.insert(i);
                 }
-
             } else {
                 range.0.insert(from);
             }
@@ -58,10 +61,21 @@ impl IntoIterator for IdRange {
     }
 }
 
+impl IdRange {
+    pub fn iter(&self) -> impl Iterator<Item = &u32> {
+        self.0.iter()
+    }
+}
 
+#[derive(Debug, Serialize, FromSqlRow, AsExpression)]
+#[sql_type = "BigInt"]
+pub struct DateTimeUtc(pub DateTime<Utc>);
 
-#[derive(Debug, Serialize)]
-pub struct DateTimeUtc(DateTime<Utc>);
+impl DateTimeUtc {
+    pub fn now() -> DateTimeUtc {
+        DateTimeUtc(Utc::now())
+    }
+}
 
 impl Deref for DateTimeUtc {
     type Target = DateTime<Utc>;
@@ -71,22 +85,43 @@ impl Deref for DateTimeUtc {
     }
 }
 
+impl FromSql<BigInt, Sqlite> for DateTimeUtc {
+    fn from_sql(value: Option<&<Sqlite as Backend>::RawValue>) -> deserialize::Result<Self> {
+        let raw_val = <i64 as FromSql<BigInt, Sqlite>>::from_sql(value)?;
+
+        Ok(DateTimeUtc(DateTime::from_utc(
+            NaiveDateTime::from_timestamp(raw_val / 1_000_000, (raw_val % 1_000_000) as u32),
+            Utc,
+        )))
+    }
+}
+
+impl ToSql<BigInt, Sqlite> for DateTimeUtc {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Sqlite>) -> serialize::Result {
+        let timestamp_us = (self.0.timestamp() * 1_000_000) + (self.timestamp_subsec_micros() as i64);
+        ToSql::<BigInt, Sqlite>::to_sql(&timestamp_us, out)
+    }
+}
+
+
 #[derive(FromForm, Debug)]
 pub struct TimeRangeExplicitTimes {
     pub from: DateTimeUtc,
-    pub to: DateTimeUtc
+    pub to: DateTimeUtc,
 }
 
 #[derive(FromForm, Debug)]
 pub struct TimeRangeOptionalEndTime {
     pub from: DateTimeUtc,
-    pub to: Option<DateTimeUtc>
+    pub to: Option<DateTimeUtc>,
 }
 
 impl<'v> FromFormValue<'v> for DateTimeUtc {
     type Error = &'v RawStr;
 
     fn from_form_value(form_value: &'v RawStr) -> Result<DateTimeUtc, &'v RawStr> {
-        Ok(DateTimeUtc(form_value.parse::<DateTime<Utc>>().map_err(|_| form_value)?))
+        Ok(DateTimeUtc(form_value
+            .parse::<DateTime<Utc>>()
+            .map_err(|_| form_value)?))
     }
 }

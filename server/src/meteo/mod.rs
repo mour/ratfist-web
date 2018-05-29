@@ -1,8 +1,9 @@
-
 use rocket::Route;
 use rocket_contrib::Json;
 
 mod immediate;
+mod models;
+mod schema;
 mod stored;
 
 #[derive(Debug)]

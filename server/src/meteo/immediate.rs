@@ -1,4 +1,3 @@
-
 use rocket::State;
 use rocket_contrib::Json;
 
@@ -8,8 +7,8 @@ use meteo::MeteoError;
 
 use utils::IdRange;
 
-use std::str::FromStr;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -52,49 +51,67 @@ impl FromStr for IncomingMessage {
         if let Some(msg_type) = tokens.next() {
             match msg_type {
                 "PRESSURE_REPLY" => {
-                    let ch_num = tokens.next().ok_or(MeteoError)?.parse().map_err(
-                        |_| MeteoError,
-                    )?;
-                    let val = tokens.next().ok_or(MeteoError)?.parse().map_err(
-                        |_| MeteoError,
-                    )?;
+                    let ch_num = tokens
+                        .next()
+                        .ok_or(MeteoError)?
+                        .parse()
+                        .map_err(|_| MeteoError)?;
+                    let val = tokens
+                        .next()
+                        .ok_or(MeteoError)?
+                        .parse()
+                        .map_err(|_| MeteoError)?;
 
                     Ok(IncomingMessage::Pressure(ch_num, val))
                 }
                 "TEMPERATURE_REPLY" => {
-                    let ch_num = tokens.next().ok_or(MeteoError)?.parse().map_err(
-                        |_| MeteoError,
-                    )?;
-                    let val = tokens.next().ok_or(MeteoError)?.parse().map_err(
-                        |_| MeteoError,
-                    )?;
+                    let ch_num = tokens
+                        .next()
+                        .ok_or(MeteoError)?
+                        .parse()
+                        .map_err(|_| MeteoError)?;
+                    let val = tokens
+                        .next()
+                        .ok_or(MeteoError)?
+                        .parse()
+                        .map_err(|_| MeteoError)?;
 
                     Ok(IncomingMessage::Temperature(ch_num, val))
                 }
                 "HUMIDITY_REPLY" => {
-                    let ch_num = tokens.next().ok_or(MeteoError)?.parse().map_err(
-                        |_| MeteoError,
-                    )?;
-                    let val = tokens.next().ok_or(MeteoError)?.parse().map_err(
-                        |_| MeteoError,
-                    )?;
+                    let ch_num = tokens
+                        .next()
+                        .ok_or(MeteoError)?
+                        .parse()
+                        .map_err(|_| MeteoError)?;
+                    let val = tokens
+                        .next()
+                        .ok_or(MeteoError)?
+                        .parse()
+                        .map_err(|_| MeteoError)?;
 
                     Ok(IncomingMessage::Humidity(ch_num, val))
                 }
                 "LIGHT_LEVEL_REPLY" => {
-                    let ch_num = tokens.next().ok_or(MeteoError)?.parse().map_err(
-                        |_| MeteoError,
-                    )?;
-                    let val = tokens.next().ok_or(MeteoError)?.parse().map_err(
-                        |_| MeteoError,
-                    )?;
+                    let ch_num = tokens
+                        .next()
+                        .ok_or(MeteoError)?
+                        .parse()
+                        .map_err(|_| MeteoError)?;
+                    let val = tokens
+                        .next()
+                        .ok_or(MeteoError)?
+                        .parse()
+                        .map_err(|_| MeteoError)?;
 
                     Ok(IncomingMessage::LightLevel(ch_num, val))
                 }
                 "RET_VAL" => {
-                    let ret_val = tokens.next().ok_or(MeteoError)?.parse().map_err(
-                        |_| MeteoError,
-                    )?;
+                    let ret_val = tokens
+                        .next()
+                        .ok_or(MeteoError)?
+                        .parse()
+                        .map_err(|_| MeteoError)?;
 
                     Ok(IncomingMessage::RetVal(ret_val))
                 }
@@ -105,7 +122,6 @@ impl FromStr for IncomingMessage {
         }
     }
 }
-
 
 fn transfer(
     comm_ch: &comm::CommChannelTx,
@@ -131,13 +147,11 @@ fn transfer(
     raw_response_msg.parse()
 }
 
-
 #[get("/<id_range>/pressure")]
 fn query_current_pressure(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-
     let comm = comm_state.get_comm_channel();
 
     let mut press_map = HashMap::new();
@@ -162,7 +176,6 @@ fn query_current_temperature(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-
     let comm = comm_state.get_comm_channel();
 
     let mut press_map = HashMap::new();
@@ -182,13 +195,11 @@ fn query_current_temperature(
     Ok(Json(press_map))
 }
 
-
 #[get("/<id_range>/humidity")]
 fn query_current_humidity(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-
     let comm = comm_state.get_comm_channel();
 
     let mut press_map = HashMap::new();
@@ -208,13 +219,11 @@ fn query_current_humidity(
     Ok(Json(press_map))
 }
 
-
 #[get("/<id_range>/light_level")]
 fn query_current_light_level(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-
     let comm = comm_state.get_comm_channel();
 
     let mut press_map = HashMap::new();

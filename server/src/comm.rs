@@ -1,6 +1,5 @@
-
 use std::sync::mpsc;
-use std::sync::mpsc::{Sender, Receiver, SendError};
+use std::sync::mpsc::{Receiver, SendError, Sender};
 
 use std::thread;
 
@@ -25,7 +24,6 @@ impl CommState {
     }
 }
 
-
 #[derive(Clone)]
 pub struct CommChannelTx(Sender<MsgAndResponseChannel>);
 
@@ -39,11 +37,9 @@ impl CommChannelTx {
     }
 }
 
-
 fn calc_checksum(input: &str) -> u8 {
     input.as_bytes().into_iter().fold(0, |csum, ch| csum ^ ch)
 }
-
 
 fn process_incoming_msg(raw_msg: &str) -> Result<(u64, &str), ()> {
     if raw_msg.len() < 4 {
@@ -71,11 +67,11 @@ fn process_incoming_msg(raw_msg: &str) -> Result<(u64, &str), ()> {
 }
 
 fn comm_func<T>(channel_rx: Receiver<MsgAndResponseChannel>, mut comm: T) -> !
-    where T: Read + Write
+where
+    T: Read + Write,
 {
     let mut transaction_id_ctr: u64 = 0;
     let mut pending_transactions = HashMap::new();
-
 
     let mut current_packet = String::new();
 
@@ -102,11 +98,9 @@ fn comm_func<T>(channel_rx: Receiver<MsgAndResponseChannel>, mut comm: T) -> !
             let _ = comm.write_all(out.as_bytes());
         }
 
-
         // Parse all incoming chars
         let mut incoming = [0; 100];
         while let Ok(incoming_len) = comm.read(&mut incoming) {
-
             debug!("Rx buffer is now: {:?}", incoming.to_vec());
 
             for i in 0..incoming_len {
@@ -123,21 +117,24 @@ fn comm_func<T>(channel_rx: Receiver<MsgAndResponseChannel>, mut comm: T) -> !
 
                         let len = current_packet.len();
                         if len >= 2 && &current_packet[(len - 2)..] == "\r\n" {
-
                             match process_incoming_msg(&current_packet[..(len - 2)]) {
                                 Ok((trans_id, payload_str)) => {
-                                    debug!("Received trans id {}, payload {}",
-                                           trans_id,
-                                           payload_str);
+                                    debug!(
+                                        "Received trans id {}, payload {}",
+                                        trans_id, payload_str
+                                    );
 
                                     if let Some(response_channel) =
-                                        pending_transactions.remove(&trans_id) {
+                                        pending_transactions.remove(&trans_id)
+                                    {
                                         let _ = response_channel.send(payload_str.to_string());
                                     } else {
                                         warn!("Unexpected transition id {}!", trans_id);
                                     }
                                 }
-                                Err(_) => warn!("Unexpected response: '{}'", &current_packet[..(len - 2)]),
+                                Err(_) => {
+                                    warn!("Unexpected response: '{}'", &current_packet[..(len - 2)])
+                                }
                             }
 
                             current_packet.clear();
@@ -150,7 +147,6 @@ fn comm_func<T>(channel_rx: Receiver<MsgAndResponseChannel>, mut comm: T) -> !
     }
 }
 
-
 pub fn init() -> (CommState, thread::JoinHandle<()>) {
     let mut serial_port = serial::open(&dotenv::var("SERIAL_PORT_PATH").expect("missing SERIAL_PORT_PATH env variable"))
         .expect("could not open serial port");
@@ -162,13 +158,16 @@ pub fn init() -> (CommState, thread::JoinHandle<()>) {
         stop_bits: serial::Stop1,
         flow_control: serial::FlowNone,
     };
-    serial_port.configure(&settings).expect("Could not configure the serial port.");
-
+    serial_port
+        .configure(&settings)
+        .expect("Could not configure the serial port.");
 
     let (channel_tx, channel_rx) = mpsc::channel();
 
     let join_handle = thread::spawn(|| comm_func(channel_rx, serial_port));
 
-
-    (CommState(Mutex::new(CommChannelTx(channel_tx))), join_handle)
+    (
+        CommState(Mutex::new(CommChannelTx(channel_tx))),
+        join_handle,
+    )
 }

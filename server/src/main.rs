@@ -1,5 +1,4 @@
 #![feature(plugin, custom_derive)]
-#![feature(inclusive_range_syntax)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
@@ -20,6 +19,9 @@ extern crate dotenv;
 
 extern crate chrono;
 
+#[macro_use]
+extern crate diesel;
+
 #[cfg(feature = "spinner")]
 mod spinner;
 
@@ -27,6 +29,7 @@ mod spinner;
 mod meteo;
 
 mod comm;
+mod db;
 mod utils;
 
 fn main() {
@@ -42,6 +45,9 @@ fn main() {
             trace!("{} - {}", var, value);
         }
     }
+
+    let db_pool = db::init_pool();
+    let rocket = rocket.manage(db_pool);
 
     let (comm, _join_handle) = comm::init();
     let rocket = rocket.manage(comm);
