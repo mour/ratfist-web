@@ -2,6 +2,7 @@ use rocket::Route;
 use rocket_contrib::Json;
 
 mod immediate;
+mod messages;
 mod models;
 mod schema;
 mod stored;
