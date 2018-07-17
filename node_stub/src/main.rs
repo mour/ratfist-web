@@ -9,13 +9,15 @@ extern crate ctrlc;
 extern crate log;
 extern crate env_logger;
 
+extern crate rand;
+
 mod dispatcher;
 mod meteo;
 
 use serial::prelude::*;
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 fn main() {
     // Setup program usage & get arguments
@@ -54,7 +56,7 @@ fn main() {
 
     // Start dispatcher & loop until Ctrl-C
     let mut disp = dispatcher::Dispatcher::new(serial_port);
-    disp.register_handler_module("METEO", Box::new(meteo::MeteoModule));
+    disp.register_handler_module("METEO", Box::new(meteo::MeteoModule::new()));
 
     trace!("Starting main loop.");
 
