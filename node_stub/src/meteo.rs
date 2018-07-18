@@ -44,6 +44,8 @@ impl MeteoModule {
             }
         };
 
+        trace!("Using distribution: {:?}", dist);
+
         let val = self.rng.sample(dist);
 
         self.last_values
@@ -62,7 +64,7 @@ impl Module for MeteoModule {
         transaction_id: u32,
         msg_str: &str,
     ) -> Result<(), ()> {
-        trace!("Handling message: {} {}", transaction_id, msg_str);
+        debug!("Handling message: {} {}", transaction_id, msg_str);
 
         let mut values = msg_str.split(',');
 
