@@ -18,6 +18,8 @@ use comm;
 #[derive(Debug)]
 struct SpinnerError;
 
+type SpinnerResponse<T> = Result<Json<T>, SpinnerError>;
+
 pub enum OutgoingMessage {
     SetState(u8, ChannelCommand),
     GetState(u8),
@@ -92,8 +94,8 @@ impl FromStr for IncomingMessage {
                             .map_err(|_| SpinnerError)?;
 
                         plan_legs.push(PlanLeg {
-                            target_val_pct: target_val_pct,
-                            duration_msecs: duration_msecs,
+                            target_val_pct,
+                            duration_msecs,
                         });
                     }
 
@@ -123,8 +125,8 @@ impl FromStr for IncomingMessage {
                         "RUNNING" => Ok(IncomingMessage::State(
                             ch_num,
                             ChannelState::Running {
-                                output_val_pct: output_val_pct,
-                                pos_in_plan_msecs: pos_in_plan_msecs,
+                                output_val_pct,
+                                pos_in_plan_msecs,
                             },
                         )),
                         "STOPPED" => Ok(IncomingMessage::State(ch_num, ChannelState::Stopped)),
@@ -217,7 +219,7 @@ fn send_channel_plan_query_msg(
 #[get("/channels")]
 fn query_channels(
     comm_state: State<comm::CommState>,
-) -> Result<Json<HashMap<u8, (ChannelState, Vec<PlanLeg>)>>, SpinnerError> {
+) -> SpinnerResponse<HashMap<u8, (ChannelState, Vec<PlanLeg>)>> {
     let comm = comm_state.get_comm_channel();
 
     let mut map = HashMap::new();
@@ -239,24 +241,24 @@ fn query_channels(
 fn query_channel(
     id: u8,
     comm_state: State<comm::CommState>,
-) -> Result<Option<Json<(ChannelState, Vec<PlanLeg>)>>, SpinnerError> {
+) -> SpinnerResponse<(ChannelState, Vec<PlanLeg>)> {
     let comm = comm_state.get_comm_channel();
 
-    Ok(Some(Json((
+    Ok(Json((
         send_channel_state_query_msg(id, &comm)?,
         send_channel_plan_query_msg(id, &comm)?,
-    ))))
+    )))
 }
 
 #[get("/channels/<id>/state")]
 fn query_channel_state(
     id: u8,
     comm_state: State<comm::CommState>,
-) -> Result<Option<Json<ChannelState>>, SpinnerError> {
+) -> SpinnerResponse<ChannelState> {
     let comm = comm_state.get_comm_channel();
 
     match send_channel_state_query_msg(id, &comm) {
-        Ok(state) => Ok(Some(Json(state))),
+        Ok(state) => Ok(Json(state)),
         Err(_) => Err(SpinnerError),
     }
 }
@@ -291,14 +293,11 @@ fn set_channel_state<'a>(
 }
 
 #[get("/channels/<id>/plan")]
-fn query_plan(
-    id: u8,
-    comm_state: State<comm::CommState>,
-) -> Result<Option<Json<Vec<PlanLeg>>>, SpinnerError> {
+fn query_plan(id: u8, comm_state: State<comm::CommState>) -> SpinnerResponse<Vec<PlanLeg>> {
     let comm = comm_state.get_comm_channel();
 
     match send_channel_plan_query_msg(id, &comm) {
-        Ok(plan) => Ok(Some(Json(plan))),
+        Ok(plan) => Ok(Json(plan)),
         Err(_) => Err(SpinnerError),
     }
 }

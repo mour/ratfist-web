@@ -58,8 +58,10 @@ fn get_measurements(
 
     let mut output_map = HashMap::new();
 
-    for m in measurements.into_iter() {
-        let mut sensor_vals = output_map.entry(m.sensor_id as u32).or_insert(Vec::new());
+    for m in measurements {
+        let mut sensor_vals = output_map
+            .entry(m.sensor_id as u32)
+            .or_insert_with(Vec::new);
         sensor_vals.push((m.measured_at, m.value));
     }
 

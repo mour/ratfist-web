@@ -104,8 +104,8 @@ where
         while let Ok(incoming_len) = comm.read(&mut incoming) {
             debug!("Rx buffer is now: {:?}", incoming.to_vec());
 
-            for i in 0..incoming_len {
-                let ch = incoming[i] as char;
+            for byte in incoming.iter().take(incoming_len) {
+                let ch = char::from(*byte);
 
                 match current_state {
                     ParserState::WaitingForDollar => {

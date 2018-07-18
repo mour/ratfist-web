@@ -66,7 +66,7 @@ impl IdRange {
     }
 }
 
-#[derive(Debug, Serialize, FromSqlRow, AsExpression)]
+#[derive(Debug, Serialize, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "BigInt"]
 pub struct DateTimeUtc(pub DateTime<Utc>);
 
@@ -98,7 +98,7 @@ impl FromSql<BigInt, Sqlite> for DateTimeUtc {
 impl ToSql<BigInt, Sqlite> for DateTimeUtc {
     fn to_sql<W: Write>(&self, out: &mut Output<W, Sqlite>) -> serialize::Result {
         let timestamp_us =
-            (self.0.timestamp() * 1_000_000) + (self.timestamp_subsec_micros() as i64);
+            (self.0.timestamp() * 1_000_000) + i64::from(self.timestamp_subsec_micros());
         ToSql::<BigInt, Sqlite>::to_sql(&timestamp_us, out)
     }
 }

@@ -7,16 +7,11 @@ use meteo::MeteoError;
 use diesel::insert_into;
 use diesel::prelude::*;
 
-use rocket::Rocket;
-
 use std::convert::TryFrom;
 
 use comm::CommState;
 
 use utils::DateTimeUtc;
-
-use std::thread;
-use std::time;
 
 pub fn fetcher_iteration(
     db_conn_pool: &DbConnPool,
@@ -84,13 +79,14 @@ pub fn fetcher_iteration(
             {
                 use meteo::schema::measurements::dsl::*;
 
-                if let Err(_) = insert_into(measurements)
+                if insert_into(measurements)
                     .values((
                         sensor_id.eq(sensor.id),
                         value.eq(measured_val),
                         measured_at.eq(&curr_time),
                     ))
                     .execute(&db)
+                    .is_err()
                 {
                     warn!(
                         "Error while inserting measurement: (id {}, value {}, measured_at {:?})",

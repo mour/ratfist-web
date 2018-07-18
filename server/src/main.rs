@@ -77,7 +77,7 @@ fn main() {
             Duration::from_secs(fetcher_task_rate),
             Duration::from_secs(fetcher_task_rate),
             move |_remote| {
-                if let Err(_) = meteo::fetcher::fetcher_iteration(&db_pool_clone, &comm_clone) {
+                if meteo::fetcher::fetcher_iteration(&db_pool_clone, &comm_clone).is_err() {
                     warn!("Fetcher task error.");
                 }
             },

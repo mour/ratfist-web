@@ -6,7 +6,7 @@ use utils::DateTimeUtc;
 use std::borrow::Borrow;
 use std::convert::TryFrom;
 
-#[derive(Identifiable, Queryable, Debug)]
+#[derive(Identifiable, Queryable, Debug, Clone)]
 pub(super) struct Sensor {
     pub id: i32,
     pub public_id: i32,
@@ -14,7 +14,7 @@ pub(super) struct Sensor {
     pub name: String,
 }
 
-#[derive(Identifiable, Queryable, Associations, Debug)]
+#[derive(Identifiable, Queryable, Associations, Debug, Clone)]
 #[belongs_to(Sensor)]
 pub(super) struct Measurement {
     pub id: i32,
@@ -23,13 +23,13 @@ pub(super) struct Measurement {
     pub measured_at: DateTimeUtc,
 }
 
-#[derive(Identifiable, Queryable, Debug)]
+#[derive(Identifiable, Queryable, Debug, Clone)]
 pub(super) struct SensorType {
     pub id: i32,
     pub name: String,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub(super) enum SensorTypeEnum {
     Pressure,
     Temperature,
