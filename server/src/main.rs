@@ -1,4 +1,5 @@
 #![feature(plugin, custom_derive)]
+#![feature(try_from)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
@@ -47,16 +48,20 @@ fn main() {
     }
 
     let db_pool = db::init_pool();
-    let rocket = rocket.manage(db_pool);
+    let rocket = rocket.manage(db_pool.clone());
 
     let (comm, _join_handle) = comm::init();
-    let rocket = rocket.manage(comm);
+    let rocket = rocket.manage(comm.clone());
 
     #[cfg(feature = "spinner")]
     let rocket = rocket.mount("/spinner", spinner::get_routes());
 
     #[cfg(feature = "meteo")]
-    let rocket = rocket.mount("/meteo", meteo::get_routes());
+    let rocket = {
+        meteo::fetcher::init_task("* * * * *", db_pool, comm);
+
+        rocket.mount("/meteo", meteo::get_routes())
+    };
 
     rocket.launch();
 }

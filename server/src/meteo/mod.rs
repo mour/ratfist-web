@@ -1,6 +1,7 @@
 use rocket::Route;
 use rocket_contrib::Json;
 
+pub mod fetcher;
 mod immediate;
 mod messages;
 mod models;
