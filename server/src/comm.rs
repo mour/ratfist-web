@@ -9,13 +9,14 @@ use std::io::{Read, Write};
 
 use std::collections::HashMap;
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use dotenv;
 
 type MsgAndResponseChannel = (String, Sender<String>);
 
-pub struct CommState(Mutex<CommChannelTx>);
+#[derive(Clone)]
+pub struct CommState(Arc<Mutex<CommChannelTx>>);
 
 impl CommState {
     pub fn get_comm_channel(&self) -> CommChannelTx {
@@ -148,8 +149,9 @@ where
 }
 
 pub fn init() -> (CommState, thread::JoinHandle<()>) {
-    let mut serial_port = serial::open(&dotenv::var("SERIAL_PORT_PATH").expect("missing SERIAL_PORT_PATH env variable"))
-        .expect("could not open serial port");
+    let mut serial_port = serial::open(
+        &dotenv::var("SERIAL_PORT_PATH").expect("missing SERIAL_PORT_PATH env variable"),
+    ).expect("could not open serial port");
 
     let settings = serial::PortSettings {
         baud_rate: serial::Baud115200,
@@ -167,7 +169,7 @@ pub fn init() -> (CommState, thread::JoinHandle<()>) {
     let join_handle = thread::spawn(|| comm_func(channel_rx, serial_port));
 
     (
-        CommState(Mutex::new(CommChannelTx(channel_tx))),
+        CommState(Arc::new(Mutex::new(CommChannelTx(channel_tx)))),
         join_handle,
     )
 }
