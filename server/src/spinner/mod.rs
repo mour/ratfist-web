@@ -261,7 +261,11 @@ fn query_channel_state(
     }
 }
 
-#[post("/channels/<id>/state", format = "application/json", data = "<new_state>")]
+#[post(
+    "/channels/<id>/state",
+    format = "application/json",
+    data = "<new_state>"
+)]
 fn set_channel_state<'a>(
     id: u8,
     new_state: Json<ChannelCommand>,
@@ -299,7 +303,11 @@ fn query_plan(
     }
 }
 
-#[put("/channels/<id>/plan", format = "application/json", data = "<new_plan>")]
+#[put(
+    "/channels/<id>/plan",
+    format = "application/json",
+    data = "<new_plan>"
+)]
 fn set_plan<'a>(
     id: u8,
     new_plan: Json<Vec<PlanLeg>>,

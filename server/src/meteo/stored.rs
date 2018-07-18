@@ -5,14 +5,13 @@ use meteo::{MeteoError, MeteoResponse};
 
 use utils::{DateTimeUtc, IdRange, TimeRangeOptionalEndTime};
 
-use std::collections::HashMap;
 use std::borrow::Borrow;
+use std::collections::HashMap;
 
 use db::Db;
 
 use diesel::prelude::*;
 use diesel::ExpressionMethods;
-
 
 fn get_measurements(
     db_conn: &Db,
@@ -67,7 +66,10 @@ fn get_measurements(
     Ok(output_map)
 }
 
-#[get("/<id_range>/pressure?<time_range>", format = "application/json")]
+#[get(
+    "/<id_range>/pressure?<time_range>",
+    format = "application/json"
+)]
 fn get_stored_pressure(
     id_range: IdRange,
     time_range: TimeRangeOptionalEndTime,
@@ -81,7 +83,10 @@ fn get_stored_pressure(
     )?))
 }
 
-#[get("/<id_range>/temperature?<time_range>", format = "application/json")]
+#[get(
+    "/<id_range>/temperature?<time_range>",
+    format = "application/json"
+)]
 fn get_stored_temperature(
     id_range: IdRange,
     time_range: TimeRangeOptionalEndTime,
@@ -95,7 +100,10 @@ fn get_stored_temperature(
     )?))
 }
 
-#[get("/<id_range>/humidity?<time_range>", format = "application/json")]
+#[get(
+    "/<id_range>/humidity?<time_range>",
+    format = "application/json"
+)]
 fn get_stored_humidity(
     id_range: IdRange,
     time_range: TimeRangeOptionalEndTime,
@@ -109,7 +117,10 @@ fn get_stored_humidity(
     )?))
 }
 
-#[get("/<id_range>/light_level?<time_range>", format = "application/json")]
+#[get(
+    "/<id_range>/light_level?<time_range>",
+    format = "application/json"
+)]
 fn get_stored_light_level(
     id_range: IdRange,
     time_range: TimeRangeOptionalEndTime,

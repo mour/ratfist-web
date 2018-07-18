@@ -9,14 +9,13 @@ use rocket::request::FromParam;
 
 use std::ops::Deref;
 
+use diesel::backend::Backend;
 use diesel::deserialize::{self, FromSql};
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::BigInt;
 use diesel::sqlite::Sqlite;
-use diesel::backend::Backend;
 
 use std::io::Write;
-
 
 #[derive(Debug, Clone)]
 pub struct IdRange(HashSet<u32>);
@@ -98,11 +97,11 @@ impl FromSql<BigInt, Sqlite> for DateTimeUtc {
 
 impl ToSql<BigInt, Sqlite> for DateTimeUtc {
     fn to_sql<W: Write>(&self, out: &mut Output<W, Sqlite>) -> serialize::Result {
-        let timestamp_us = (self.0.timestamp() * 1_000_000) + (self.timestamp_subsec_micros() as i64);
+        let timestamp_us =
+            (self.0.timestamp() * 1_000_000) + (self.timestamp_subsec_micros() as i64);
         ToSql::<BigInt, Sqlite>::to_sql(&timestamp_us, out)
     }
 }
-
 
 #[derive(FromForm, Debug)]
 pub struct TimeRangeExplicitTimes {
@@ -120,8 +119,8 @@ impl<'v> FromFormValue<'v> for DateTimeUtc {
     type Error = &'v RawStr;
 
     fn from_form_value(form_value: &'v RawStr) -> Result<DateTimeUtc, &'v RawStr> {
-        Ok(DateTimeUtc(form_value
-            .parse::<DateTime<Utc>>()
-            .map_err(|_| form_value)?))
+        Ok(DateTimeUtc(
+            form_value.parse::<DateTime<Utc>>().map_err(|_| form_value)?,
+        ))
     }
 }
