@@ -18,18 +18,10 @@ use utils::DateTimeUtc;
 use std::thread;
 use std::time;
 
-pub fn init_task(_schedule_str: &str, db_conn_pool: DbConnPool, comm_state: CommState) {
-    thread::spawn(move || loop {
-        if let Err(_) = fetcher_iteration(&db_conn_pool, &comm_state) {
-            warn!("Fetcher DB error.");
-        }
-
-        thread::sleep(time::Duration::from_secs(60));
-    });
-}
-
-
-fn fetcher_iteration(db_conn_pool: &DbConnPool, comm_state: &CommState) -> Result<(), MeteoError> {
+pub fn fetcher_iteration(
+    db_conn_pool: &DbConnPool,
+    comm_state: &CommState,
+) -> Result<(), MeteoError> {
     let db = db_conn_pool.get().map_err(|_| MeteoError)?;
 
     // Get all sensors
@@ -41,9 +33,7 @@ fn fetcher_iteration(db_conn_pool: &DbConnPool, comm_state: &CommState) -> Resul
             .load::<(Sensor, SensorType)>(&db)
     }.map_err(|_| MeteoError)?;
 
-
     let curr_time = DateTimeUtc::now();
-
 
     for (ref sensor, ref sensor_type) in &sensors {
         // Send message querying each sensor
@@ -61,13 +51,25 @@ fn fetcher_iteration(db_conn_pool: &DbConnPool, comm_state: &CommState) -> Resul
 
             let measured_val = match transfer(&channel, outgoing_msg) {
                 Ok(IncomingMessage::Pressure(id, val))
-                    if id == sens_id && sensor_type_enum == SensorTypeEnum::Pressure => val,
+                    if id == sens_id && sensor_type_enum == SensorTypeEnum::Pressure =>
+                {
+                    val
+                }
                 Ok(IncomingMessage::Temperature(id, val))
-                    if id == sens_id && sensor_type_enum == SensorTypeEnum::Temperature => val,
+                    if id == sens_id && sensor_type_enum == SensorTypeEnum::Temperature =>
+                {
+                    val
+                }
                 Ok(IncomingMessage::Humidity(id, val))
-                    if id == sens_id && sensor_type_enum == SensorTypeEnum::Humidity => val,
+                    if id == sens_id && sensor_type_enum == SensorTypeEnum::Humidity =>
+                {
+                    val
+                }
                 Ok(IncomingMessage::LightLevel(id, val))
-                    if id == sens_id && sensor_type_enum == SensorTypeEnum::LightLevel => val,
+                    if id == sens_id && sensor_type_enum == SensorTypeEnum::LightLevel =>
+                {
+                    val
+                }
                 Ok(msg) => {
                     warn!("Unexpected reply message: {:?}", msg);
                     continue;
@@ -96,7 +98,6 @@ fn fetcher_iteration(db_conn_pool: &DbConnPool, comm_state: &CommState) -> Resul
                     );
                 }
             }
-
         } else {
             warn!("Unknown sensor type: {}", sensor_type.name);
         }

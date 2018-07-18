@@ -9,7 +9,7 @@ mod schema;
 mod stored;
 
 #[derive(Debug)]
-struct MeteoError;
+pub struct MeteoError;
 
 type MeteoResponse<T> = Result<Json<T>, MeteoError>;
 

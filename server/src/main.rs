@@ -23,6 +23,8 @@ extern crate chrono;
 #[macro_use]
 extern crate diesel;
 
+extern crate scheduled_executor;
+
 #[cfg(feature = "spinner")]
 mod spinner;
 
@@ -32,6 +34,8 @@ mod meteo;
 mod comm;
 mod db;
 mod utils;
+
+use std::time::Duration;
 
 fn main() {
     let path = dotenv::dotenv().ok();
@@ -53,12 +57,31 @@ fn main() {
     let (comm, _join_handle) = comm::init();
     let rocket = rocket.manage(comm.clone());
 
+    let executor =
+        scheduled_executor::CoreExecutor::new().expect("Could not start periodic task executor");
+
     #[cfg(feature = "spinner")]
     let rocket = rocket.mount("/spinner", spinner::get_routes());
 
     #[cfg(feature = "meteo")]
     let rocket = {
-        meteo::fetcher::init_task("* * * * *", db_pool, comm);
+        let db_pool_clone = db_pool.clone();
+        let comm_clone = comm.clone();
+
+        let fetcher_task_rate = dotenv::var("METEO_FETCHER_TASK_RATE_SECS")
+            .expect("missing METEO_FETCHER_TASK_RATE_SECS env variable")
+            .parse()
+            .expect("METEO_FETCHER_TASK_RATE_SECS parsing error");
+
+        executor.schedule_fixed_rate(
+            Duration::from_secs(fetcher_task_rate),
+            Duration::from_secs(fetcher_task_rate),
+            move |_remote| {
+                if let Err(_) = meteo::fetcher::fetcher_iteration(&db_pool_clone, &comm_clone) {
+                    warn!("Fetcher task error.");
+                }
+            },
+        );
 
         rocket.mount("/meteo", meteo::get_routes())
     };

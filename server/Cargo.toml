@@ -16,6 +16,7 @@ regex = "0.2"
 dotenv = "0.11"
 diesel = { version = "1", features = ["sqlite", "r2d2", "chrono"] }
 chrono = { version = "0.4", features = ["serde"] }
+scheduled-executor = "0.4.0"
 
 [features]
 spinner = []
