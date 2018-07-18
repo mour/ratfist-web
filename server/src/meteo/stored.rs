@@ -1,7 +1,6 @@
-
 use rocket_contrib::Json;
 
-use meteo::models::{Measurement, Sensor, SensorType};
+use meteo::models::{Measurement, Sensor, SensorType, SensorTypeEnum};
 use meteo::{MeteoError, MeteoResponse};
 
 use utils::{DateTimeUtc, IdRange, TimeRangeOptionalEndTime};
@@ -15,31 +14,12 @@ use diesel::prelude::*;
 use diesel::ExpressionMethods;
 
 
-enum SensorTypeEnum {
-    Pressure,
-    Temperature,
-    Humidity,
-    LightLevel,
-}
-
-impl Borrow<str> for SensorTypeEnum {
-    fn borrow(&self) -> &'static str {
-        match self {
-            SensorTypeEnum::Pressure => "pressure",
-            SensorTypeEnum::Temperature => "temperature",
-            SensorTypeEnum::Humidity => "humidity",
-            SensorTypeEnum::LightLevel => "light_level",
-        }
-    }
-}
-
 fn get_measurements(
     db_conn: &Db,
     sensor_type: SensorTypeEnum,
     sensor_ids: &IdRange,
     time_range: &TimeRangeOptionalEndTime,
 ) -> Result<HashMap<u32, Vec<(DateTimeUtc, f32)>>, MeteoError> {
-
     let ids = sensor_ids.iter().map(|v| *v as i32).collect::<Vec<i32>>();
 
     let sensor_type_id = {
@@ -53,7 +33,6 @@ fn get_measurements(
             .id
     };
 
-
     let sensor_query = {
         use meteo::schema::sensors::dsl::*;
 
@@ -63,7 +42,6 @@ fn get_measurements(
     let sensors = sensor_query
         .load::<Sensor>(&**db_conn)
         .map_err(|_| MeteoError)?;
-
 
     let now = DateTimeUtc::now();
     let measurement_query = {
@@ -75,11 +53,9 @@ fn get_measurements(
             .filter(measured_at.le(time_range.to.as_ref().unwrap_or(&now)))
     };
 
-
     let measurements = measurement_query
         .load::<Measurement>(&**db_conn)
         .map_err(|_| MeteoError)?;
-
 
     let mut output_map = HashMap::new();
 
