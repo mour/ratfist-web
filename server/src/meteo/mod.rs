@@ -15,6 +15,7 @@ type MeteoResponse<T> = Result<Json<T>, MeteoError>;
 
 pub fn get_routes() -> Vec<Route> {
     routes![
+        immediate::query_all_sensors,
         immediate::query_current_pressure,
         immediate::query_current_temperature,
         immediate::query_current_humidity,
