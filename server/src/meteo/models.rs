@@ -7,9 +7,17 @@ use std::borrow::Borrow;
 use std::convert::TryFrom;
 
 #[derive(Identifiable, Queryable, Debug, Clone)]
+pub(super) struct Node {
+    pub id: i32,
+    pub public_id: i32,
+    pub name: String,
+}
+
+#[derive(Identifiable, Queryable, Debug, Clone)]
 pub(super) struct Sensor {
     pub id: i32,
     pub public_id: i32,
+    pub node_id: i32,
     pub type_id: i32,
     pub name: String,
 }
