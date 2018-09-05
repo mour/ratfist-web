@@ -1,17 +1,11 @@
+use db::schema::nodes;
+
 table! {
     measurements (id) {
         id -> Integer,
         sensor_id -> Integer,
         value -> Float,
         measured_at -> BigInt,
-    }
-}
-
-table! {
-    nodes (id) {
-        id -> Integer,
-        public_id -> Integer,
-        name -> Text,
     }
 }
 

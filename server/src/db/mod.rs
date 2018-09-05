@@ -9,6 +9,11 @@ use rocket::{Outcome, State};
 
 use std::ops::Deref;
 
+
+pub mod models;
+pub mod schema;
+
+
 pub type DbConnPool = Pool<ConnectionManager<SqliteConnection>>;
 type DbPooledConn = PooledConnection<ConnectionManager<SqliteConnection>>;
 
@@ -34,6 +39,7 @@ impl Deref for Db {
         &self.0
     }
 }
+
 
 pub fn init_pool() -> DbConnPool {
     let manager = ConnectionManager::<SqliteConnection>::new(
