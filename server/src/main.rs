@@ -25,6 +25,9 @@ extern crate diesel;
 
 extern crate scheduled_executor;
 
+use std::time::Duration;
+
+
 #[cfg(feature = "spinner")]
 mod spinner;
 
@@ -35,7 +38,10 @@ mod comm;
 mod db;
 mod utils;
 
-use std::time::Duration;
+
+#[derive(Debug)]
+pub struct CoreError;
+
 
 fn main() {
     let path = dotenv::dotenv().ok();
@@ -54,7 +60,7 @@ fn main() {
     let db_pool = db::init_pool();
     let rocket = rocket.manage(db_pool.clone());
 
-    let (comm, _join_handle) = comm::init();
+    let (comm, _join_handle) = comm::init(&db_pool);
     let rocket = rocket.manage(comm.clone());
 
     let executor =

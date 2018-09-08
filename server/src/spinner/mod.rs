@@ -220,7 +220,7 @@ fn send_channel_plan_query_msg(
 fn query_channels(
     comm_state: State<comm::CommState>,
 ) -> SpinnerResponse<HashMap<u8, (ChannelState, Vec<PlanLeg>)>> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
     let mut map = HashMap::new();
 
@@ -242,7 +242,7 @@ fn query_channel(
     id: u8,
     comm_state: State<comm::CommState>,
 ) -> SpinnerResponse<(ChannelState, Vec<PlanLeg>)> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
     Ok(Json((
         send_channel_state_query_msg(id, &comm)?,
@@ -255,7 +255,7 @@ fn query_channel_state(
     id: u8,
     comm_state: State<comm::CommState>,
 ) -> SpinnerResponse<ChannelState> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
     match send_channel_state_query_msg(id, &comm) {
         Ok(state) => Ok(Json(state)),
@@ -273,7 +273,7 @@ fn set_channel_state<'a>(
     new_state: Json<ChannelCommand>,
     comm_state: State<comm::CommState>,
 ) -> Result<Response<'a>, SpinnerError> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
     let response_str = send_msg(
         OutgoingMessage::SetState(id, new_state.into_inner()).into(),
@@ -294,7 +294,7 @@ fn set_channel_state<'a>(
 
 #[get("/channels/<id>/plan")]
 fn query_plan(id: u8, comm_state: State<comm::CommState>) -> SpinnerResponse<Vec<PlanLeg>> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
     match send_channel_plan_query_msg(id, &comm) {
         Ok(plan) => Ok(Json(plan)),
@@ -312,7 +312,7 @@ fn set_plan<'a>(
     new_plan: Json<Vec<PlanLeg>>,
     comm_state: State<comm::CommState>,
 ) -> Result<Response<'a>, SpinnerError> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
     let response_str = send_msg(
         OutgoingMessage::SetPlan(id, new_plan.into_inner()).into(),

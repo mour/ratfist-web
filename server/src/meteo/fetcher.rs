@@ -42,7 +42,7 @@ pub fn fetcher_iteration(
                 SensorTypeEnum::LightLevel => OutgoingMessage::GetLightLevel(sens_id),
             };
 
-            let channel = comm_state.get_comm_channel();
+            let channel = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 
             let measured_val = match transfer(&channel, outgoing_msg) {
                 Ok(IncomingMessage::Pressure(id, val))

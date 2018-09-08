@@ -52,7 +52,7 @@ fn query_all_sensors(db_conn: Db, comm_state: State<comm::CommState>) -> MeteoRe
             SensorTypeEnum::LightLevel => OutgoingMessage::GetLightLevel(sens_id),
         };
 
-        let channel = comm_state.get_comm_channel();
+        let channel = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 
         let measured_val = match transfer(&channel, outgoing_msg) {
             Ok(IncomingMessage::Pressure(id, val))
@@ -108,7 +108,7 @@ fn query_current_pressure(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 
     let mut press_map = HashMap::new();
 
@@ -132,7 +132,7 @@ fn query_current_temperature(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 
     let mut press_map = HashMap::new();
 
@@ -156,7 +156,7 @@ fn query_current_humidity(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 
     let mut press_map = HashMap::new();
 
@@ -180,7 +180,7 @@ fn query_current_light_level(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-    let comm = comm_state.get_comm_channel();
+    let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 
     let mut press_map = HashMap::new();
 

@@ -1,27 +1,38 @@
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, SendError, Sender};
 
-use std::thread;
-
-use serial;
-use serial::prelude::*;
 use std::io::{Read, Write};
 
 use std::collections::HashMap;
 
 use std::sync::{Arc, Mutex};
 
-use dotenv;
+use std::thread;
+
+use db::models::Node;
+use db::DbConnPool;
+
+use diesel::prelude::*;
+
+use CoreError;
+
+mod serial;
 
 type MsgAndResponseChannel = (String, Sender<String>);
 
 #[derive(Clone)]
-pub struct CommState(Arc<Mutex<CommChannelTx>>);
+pub struct CommState(Arc<HashMap<usize, Mutex<CommChannelTx>>>);
 
 impl CommState {
-    pub fn get_comm_channel(&self) -> CommChannelTx {
-        let comm = self.0.lock().expect("mutex poisoned");
-        comm.clone()
+    pub fn get_comm_channel(&self, node_id: usize) -> Result<CommChannelTx, CoreError> {
+        let comm = self
+            .0
+            .get(&node_id)
+            .ok_or(CoreError)?
+            .lock()
+            .expect("mutex poisoned");
+
+        Ok(comm.clone())
     }
 }
 
@@ -148,28 +159,40 @@ where
     }
 }
 
-pub fn init() -> (CommState, thread::JoinHandle<()>) {
-    let mut serial_port = serial::open(
-        &dotenv::var("SERIAL_PORT_PATH").expect("missing SERIAL_PORT_PATH env variable"),
-    ).expect("could not open serial port");
+pub fn init(db_conn_pool: &DbConnPool) -> (CommState, Vec<thread::JoinHandle<()>>) {
+    // Get list of nodes, and their appropriate comm routing info
+    let db = db_conn_pool.get().expect("could not get DB connection");
 
-    let settings = serial::PortSettings {
-        baud_rate: serial::Baud115200,
-        char_size: serial::Bits8,
-        parity: serial::ParityNone,
-        stop_bits: serial::Stop1,
-        flow_control: serial::FlowNone,
-    };
-    serial_port
-        .configure(&settings)
-        .expect("Could not configure the serial port.");
+    let nodes = {
+        use db::schema::*;
 
-    let (channel_tx, channel_rx) = mpsc::channel();
+        nodes::table.load::<Node>(&db)
+    }.expect("could not load node info from DB");
 
-    let join_handle = thread::spawn(|| comm_func(channel_rx, serial_port));
 
-    (
-        CommState(Arc::new(Mutex::new(CommChannelTx(channel_tx)))),
-        join_handle,
-    )
+    // Open the appropriate listeners
+    let mut node_channels = HashMap::new();
+    let mut join_handles = Vec::new();
+
+    for node in nodes {
+        match node.route_type.as_str() {
+            "serial" => {
+                let serial_route_id = node.route_param
+                    .expect("missing serial route ID in DB")
+                    .parse()
+                    .expect("failed to parse serial route ID");
+
+                node_channels.entry(serial_route_id).or_insert_with(|| {
+                    let (channel_tx, join_handle) = serial::create_serial_comm_task(serial_route_id);
+
+                    join_handles.push(join_handle);
+
+                    Mutex::new(channel_tx)
+                });
+            }
+            unknown_type_str => panic!("unknown comm route type: {}", unknown_type_str),
+        }
+    }
+
+    (CommState(Arc::new(node_channels)), join_handles)
 }
