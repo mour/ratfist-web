@@ -21,10 +21,10 @@ mod serial;
 type MsgAndResponseChannel = (String, Sender<String>);
 
 #[derive(Clone)]
-pub struct CommState(Arc<HashMap<usize, Mutex<CommChannelTx>>>);
+pub struct CommState(Arc<HashMap<u32, Mutex<CommChannelTx>>>);
 
 impl CommState {
-    pub fn get_comm_channel(&self, node_id: usize) -> Result<CommChannelTx, CoreError> {
+    pub fn get_comm_channel(&self, node_id: u32) -> Result<CommChannelTx, CoreError> {
         let comm = self
             .0
             .get(&node_id)

@@ -1,4 +1,5 @@
 use db::DbConnPool;
+use db::models::Node;
 
 use meteo::messages::{transfer, IncomingMessage, OutgoingMessage};
 use meteo::models::{Sensor, SensorType, SensorTypeEnum};
@@ -22,15 +23,17 @@ pub fn fetcher_iteration(
     // Get all sensors
     let sensors = {
         use meteo::schema::*;
+        use db::schema::*;
 
         sensors::table
             .inner_join(sensor_types::table)
-            .load::<(Sensor, SensorType)>(&db)
+            .inner_join(nodes::table)
+            .load::<(Sensor, SensorType, Node)>(&db)
     }.map_err(|_| MeteoError)?;
 
     let curr_time = DateTimeUtc::now();
 
-    for (ref sensor, ref sensor_type) in &sensors {
+    for (ref sensor, ref sensor_type, ref node) in &sensors {
         // Send message querying each sensor
         if let Ok(sensor_type_enum) = SensorTypeEnum::try_from(sensor_type.name.as_str()) {
             let sens_id = sensor.public_id as u32;
@@ -42,7 +45,7 @@ pub fn fetcher_iteration(
                 SensorTypeEnum::LightLevel => OutgoingMessage::GetLightLevel(sens_id),
             };
 
-            let channel = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
+            let channel = comm_state.get_comm_channel(node.public_id as u32).map_err(|_| MeteoError)?;
 
             let measured_val = match transfer(&channel, outgoing_msg) {
                 Ok(IncomingMessage::Pressure(id, val))
