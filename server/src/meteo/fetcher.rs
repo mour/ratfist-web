@@ -1,18 +1,18 @@
-use db::DbConnPool;
-use db::models::Node;
+use crate::db::DbConnPool;
+use crate::db::models::Node;
 
-use meteo::messages::{transfer, IncomingMessage, OutgoingMessage};
-use meteo::models::{Sensor, SensorType, SensorTypeEnum};
-use meteo::MeteoError;
+use crate::meteo::messages::{transfer, IncomingMessage, OutgoingMessage};
+use crate::meteo::models::{Sensor, SensorType, SensorTypeEnum};
+use crate::meteo::MeteoError;
 
 use diesel::insert_into;
 use diesel::prelude::*;
 
 use std::convert::TryFrom;
 
-use comm::CommState;
+use crate::comm::CommState;
 
-use utils::DateTimeUtc;
+use crate::utils::DateTimeUtc;
 
 pub fn fetcher_iteration(
     db_conn_pool: &DbConnPool,
@@ -22,8 +22,8 @@ pub fn fetcher_iteration(
 
     // Get all sensors
     let sensors = {
-        use meteo::schema::*;
-        use db::schema::*;
+        use crate::meteo::schema::*;
+        use crate::db::schema::*;
 
         sensors::table
             .inner_join(sensor_types::table)
@@ -80,7 +80,7 @@ pub fn fetcher_iteration(
 
             // Push to db (use same timestamp for all values)
             {
-                use meteo::schema::measurements::dsl::*;
+                use crate::meteo::schema::measurements::dsl::*;
 
                 if insert_into(measurements)
                     .values((

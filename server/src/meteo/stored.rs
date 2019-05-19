@@ -1,14 +1,14 @@
 use rocket_contrib::json::Json;
 
-use meteo::models::{Measurement, Sensor, SensorType, SensorTypeEnum};
-use meteo::{MeteoError, MeteoResponse};
+use crate::meteo::models::{Measurement, Sensor, SensorType, SensorTypeEnum};
+use crate::meteo::{MeteoError, MeteoResponse};
 
-use utils::{DateTimeUtc, IdRange, TimeRangeOptionalEndTime};
+use crate::utils::{DateTimeUtc, IdRange, TimeRangeOptionalEndTime};
 
 use std::borrow::Borrow;
 use std::collections::HashMap;
 
-use db::Db;
+use crate::db::Db;
 
 use diesel::prelude::*;
 use diesel::ExpressionMethods;
@@ -22,7 +22,7 @@ fn get_measurements(
     let ids = sensor_ids.iter().map(|v| *v as i32).collect::<Vec<i32>>();
 
     let sensor_type_id = {
-        use meteo::schema::sensor_types::dsl::*;
+        use crate::meteo::schema::sensor_types::dsl::*;
 
         let sensor_type_str: &str = sensor_type.borrow();
         sensor_types
@@ -33,7 +33,7 @@ fn get_measurements(
     };
 
     let sensor_query = {
-        use meteo::schema::sensors::dsl::*;
+        use crate::meteo::schema::sensors::dsl::*;
 
         sensors.filter(public_id.eq_any(ids).and(type_id.eq(sensor_type_id)))
     };
@@ -44,7 +44,7 @@ fn get_measurements(
 
     let now = DateTimeUtc::now();
     let measurement_query = {
-        use meteo::schema::measurements::dsl::*;
+        use crate::meteo::schema::measurements::dsl::*;
 
         Measurement::belonging_to(&sensors)
             .order_by(measured_at.asc())

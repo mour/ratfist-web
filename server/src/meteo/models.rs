@@ -1,7 +1,7 @@
 use super::schema::{measurements, sensor_types, sensors};
 use super::MeteoError;
 
-use utils::DateTimeUtc;
+use crate::utils::DateTimeUtc;
 
 use std::borrow::Borrow;
 use std::convert::TryFrom;

@@ -1,15 +1,15 @@
 use rocket::State;
 use rocket_contrib::json::Json;
 
-use comm;
-use db::Db;
+use crate::comm;
+use crate::db::Db;
 
 use super::messages::{transfer, IncomingMessage, OutgoingMessage};
 use super::{MeteoError, MeteoResponse};
 
 use super::models::{Sensor, SensorType, SensorTypeEnum};
 
-use utils::IdRange;
+use crate::utils::IdRange;
 
 use std::collections::HashMap;
 
@@ -32,7 +32,7 @@ pub fn query_all_sensors(db_conn: Db, comm_state: State<comm::CommState>) -> Met
     let mut output = Vec::new();
 
     let sensors = {
-        use meteo::schema::*;
+        use crate::meteo::schema::*;
 
         sensors::table
             .inner_join(sensor_types::table)

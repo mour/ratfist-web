@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use std::time::Duration;
 
-use comm;
+use crate::comm;
 
 #[derive(Debug)]
 struct SpinnerError;

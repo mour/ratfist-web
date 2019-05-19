@@ -1,5 +1,5 @@
 use super::MeteoError;
-use comm;
+use crate::comm;
 
 use std::str::FromStr;
 use std::time::Duration;

@@ -1,4 +1,4 @@
-use db::schema::nodes;
+use crate::db::schema::nodes;
 
 table! {
     measurements (id) {

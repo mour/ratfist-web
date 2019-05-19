@@ -2,6 +2,7 @@
 name = "ratfist_server"
 version = "0.1.0"
 authors = ["Ondrej Palenicek <ondrej.palenicek@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 rocket = "0.4"

@@ -9,12 +9,12 @@ use std::sync::{Arc, Mutex};
 
 use std::thread;
 
-use db::models::Node;
-use db::DbConnPool;
+use crate::db::models::Node;
+use crate::db::DbConnPool;
 
 use diesel::prelude::*;
 
-use CoreError;
+use crate::CoreError;
 
 mod serial;
 
@@ -164,7 +164,7 @@ pub fn init(db_conn_pool: &DbConnPool) -> (CommState, Vec<thread::JoinHandle<()>
     let db = db_conn_pool.get().expect("could not get DB connection");
 
     let nodes = {
-        use db::schema::*;
+        use crate::db::schema::*;
 
         nodes::table.load::<Node>(&db)
     }.expect("could not load node info from DB");
