@@ -1,5 +1,5 @@
 use rocket::State;
-use rocket_contrib::Json;
+use rocket_contrib::json::Json;
 
 use comm;
 use db::Db;
@@ -17,7 +17,7 @@ use diesel::prelude::*;
 use std::convert::TryFrom;
 
 #[derive(Serialize, Deserialize, Debug)]
-struct SensorState {
+pub struct SensorState {
     id: u32,
     #[serde(rename = "type")]
     sensor_type: String,
@@ -27,7 +27,7 @@ struct SensorState {
 
 // FIXME Remove this endpoint during work on #15. Added only for initial version of ratfist-mobile.
 #[get("/current")]
-fn query_all_sensors(db_conn: Db, comm_state: State<comm::CommState>) -> MeteoResponse<Vec<SensorState>> {
+pub fn query_all_sensors(db_conn: Db, comm_state: State<comm::CommState>) -> MeteoResponse<Vec<SensorState>> {
 
     let mut output = Vec::new();
 
@@ -104,7 +104,7 @@ fn query_all_sensors(db_conn: Db, comm_state: State<comm::CommState>) -> MeteoRe
 
 
 #[get("/<id_range>/pressure")]
-fn query_current_pressure(
+pub fn query_current_pressure(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
@@ -128,7 +128,7 @@ fn query_current_pressure(
 }
 
 #[get("/<id_range>/temperature")]
-fn query_current_temperature(
+pub fn query_current_temperature(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
@@ -152,7 +152,7 @@ fn query_current_temperature(
 }
 
 #[get("/<id_range>/humidity")]
-fn query_current_humidity(
+pub fn query_current_humidity(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
@@ -176,7 +176,7 @@ fn query_current_humidity(
 }
 
 #[get("/<id_range>/light_level")]
-fn query_current_light_level(
+pub fn query_current_light_level(
     id_range: IdRange,
     comm_state: State<comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {

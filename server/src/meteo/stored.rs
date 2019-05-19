@@ -1,4 +1,4 @@
-use rocket_contrib::Json;
+use rocket_contrib::json::Json;
 
 use meteo::models::{Measurement, Sensor, SensorType, SensorTypeEnum};
 use meteo::{MeteoError, MeteoResponse};
@@ -69,69 +69,85 @@ fn get_measurements(
 }
 
 #[get(
-    "/<id_range>/pressure?<time_range>",
+    "/<id_range>/pressure?<from>&<to>",
     format = "application/json"
 )]
-fn get_stored_pressure(
+pub fn get_stored_pressure(
     id_range: IdRange,
-    time_range: TimeRangeOptionalEndTime,
+    from: DateTimeUtc,
+    to: Option<DateTimeUtc>,
     db_conn: Db,
 ) -> MeteoResponse<HashMap<u32, Vec<(DateTimeUtc, f32)>>> {
     Ok(Json(get_measurements(
         &db_conn,
         SensorTypeEnum::Pressure,
         &id_range,
-        &time_range,
+        &TimeRangeOptionalEndTime{
+            from,
+            to
+        },
     )?))
 }
 
 #[get(
-    "/<id_range>/temperature?<time_range>",
+    "/<id_range>/temperature?<from>&<to>",
     format = "application/json"
 )]
-fn get_stored_temperature(
+pub fn get_stored_temperature(
     id_range: IdRange,
-    time_range: TimeRangeOptionalEndTime,
+    from: DateTimeUtc,
+    to: Option<DateTimeUtc>,
     db_conn: Db,
 ) -> MeteoResponse<HashMap<u32, Vec<(DateTimeUtc, f32)>>> {
     Ok(Json(get_measurements(
         &db_conn,
         SensorTypeEnum::Temperature,
         &id_range,
-        &time_range,
+        &TimeRangeOptionalEndTime{
+            from,
+            to
+        },
     )?))
 }
 
 #[get(
-    "/<id_range>/humidity?<time_range>",
+    "/<id_range>/humidity?<from>&<to>",
     format = "application/json"
 )]
-fn get_stored_humidity(
+pub fn get_stored_humidity(
     id_range: IdRange,
-    time_range: TimeRangeOptionalEndTime,
+    from: DateTimeUtc,
+    to: Option<DateTimeUtc>,
     db_conn: Db,
 ) -> MeteoResponse<HashMap<u32, Vec<(DateTimeUtc, f32)>>> {
     Ok(Json(get_measurements(
         &db_conn,
         SensorTypeEnum::Humidity,
         &id_range,
-        &time_range,
+        &TimeRangeOptionalEndTime{
+            from,
+            to
+        },
     )?))
 }
 
 #[get(
-    "/<id_range>/light_level?<time_range>",
+    "/<id_range>/light_level?<from>&<to>",
     format = "application/json"
 )]
-fn get_stored_light_level(
+pub fn get_stored_light_level(
     id_range: IdRange,
-    time_range: TimeRangeOptionalEndTime,
+    from: DateTimeUtc,
+    to: Option<DateTimeUtc>,
     db_conn: Db,
 ) -> MeteoResponse<HashMap<u32, Vec<(DateTimeUtc, f32)>>> {
     Ok(Json(get_measurements(
         &db_conn,
         SensorTypeEnum::LightLevel,
         &id_range,
-        &time_range,
+        &TimeRangeOptionalEndTime{
+            from,
+            to
+        },
     )?))
 }

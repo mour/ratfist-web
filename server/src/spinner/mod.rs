@@ -5,7 +5,7 @@ use rocket::Response;
 
 use rocket::State;
 
-use rocket_contrib::Json;
+use rocket_contrib::json::Json;
 
 use std::str::FromStr;
 

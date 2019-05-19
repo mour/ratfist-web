@@ -1,8 +1,8 @@
-#![feature(plugin, custom_derive)]
-#![feature(try_from)]
-#![plugin(rocket_codegen)]
+#![feature(proc_macro_hygiene, decl_macro)]
 
+#[macro_use]
 extern crate rocket;
+
 extern crate rocket_contrib;
 
 extern crate regex;
@@ -50,7 +50,7 @@ fn main() {
 
     // Rocket initialized above to enable logging.
     debug!("Loaded .env from: {:?}.", path);
-    if log::max_log_level() >= log::LogLevelFilter::Trace {
+    if log::max_level() >= log::LevelFilter::Trace {
         trace!("Loaded environment variables:");
         for (var, value) in dotenv::vars() {
             trace!("{} - {}", var, value);

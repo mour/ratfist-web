@@ -1,5 +1,5 @@
 use rocket::Route;
-use rocket_contrib::Json;
+use rocket_contrib::json::Json;
 
 pub mod fetcher;
 mod immediate;
