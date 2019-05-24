@@ -4,6 +4,8 @@ use crate::comm;
 use std::str::FromStr;
 use std::time::Duration;
 
+use log::{debug, warn};
+
 #[derive(Debug)]
 pub(super) enum OutgoingMessage {
     GetPressure(u32),

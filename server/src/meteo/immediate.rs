@@ -11,6 +11,8 @@ use super::models::{Sensor, SensorType, SensorTypeEnum};
 
 use crate::utils::IdRange;
 
+use log::warn;
+
 use std::collections::HashMap;
 
 use diesel::prelude::*;
@@ -27,7 +29,7 @@ pub struct SensorState {
 
 // FIXME Remove this endpoint during work on #15. Added only for initial version of ratfist-mobile.
 #[get("/current")]
-pub fn query_all_sensors(db_conn: Db, comm_state: State<comm::CommState>) -> MeteoResponse<Vec<SensorState>> {
+pub fn query_all_sensors(db_conn: Db, comm_state: State<'_, comm::CommState>) -> MeteoResponse<Vec<SensorState>> {
 
     let mut output = Vec::new();
 
@@ -106,7 +108,7 @@ pub fn query_all_sensors(db_conn: Db, comm_state: State<comm::CommState>) -> Met
 #[get("/<id_range>/pressure")]
 pub fn query_current_pressure(
     id_range: IdRange,
-    comm_state: State<comm::CommState>,
+    comm_state: State<'_, comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 
@@ -130,7 +132,7 @@ pub fn query_current_pressure(
 #[get("/<id_range>/temperature")]
 pub fn query_current_temperature(
     id_range: IdRange,
-    comm_state: State<comm::CommState>,
+    comm_state: State<'_, comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 
@@ -154,7 +156,7 @@ pub fn query_current_temperature(
 #[get("/<id_range>/humidity")]
 pub fn query_current_humidity(
     id_range: IdRange,
-    comm_state: State<comm::CommState>,
+    comm_state: State<'_, comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 
@@ -178,7 +180,7 @@ pub fn query_current_humidity(
 #[get("/<id_range>/light_level")]
 pub fn query_current_light_level(
     id_range: IdRange,
-    comm_state: State<comm::CommState>,
+    comm_state: State<'_, comm::CommState>,
 ) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
 

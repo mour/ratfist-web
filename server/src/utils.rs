@@ -96,7 +96,7 @@ impl FromSql<BigInt, Sqlite> for DateTimeUtc {
 }
 
 impl ToSql<BigInt, Sqlite> for DateTimeUtc {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Sqlite>) -> serialize::Result {
+    fn to_sql<W: Write>(&self, out: &mut Output<'_, W, Sqlite>) -> serialize::Result {
         let timestamp_us =
             (self.0.timestamp() * 1_000_000) + i64::from(self.timestamp_subsec_micros());
         ToSql::<BigInt, Sqlite>::to_sql(&timestamp_us, out)

@@ -7,6 +7,8 @@ use rocket::State;
 
 use rocket_contrib::json::Json;
 
+use log::{debug, warn};
+
 use std::str::FromStr;
 
 use std::collections::HashMap;
@@ -218,7 +220,7 @@ fn send_channel_plan_query_msg(
 
 #[get("/channels")]
 fn query_channels(
-    comm_state: State<comm::CommState>,
+    comm_state: State<'_, comm::CommState>,
 ) -> SpinnerResponse<HashMap<u8, (ChannelState, Vec<PlanLeg>)>> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
@@ -240,7 +242,7 @@ fn query_channels(
 #[get("/channels/<id>")]
 fn query_channel(
     id: u8,
-    comm_state: State<comm::CommState>,
+    comm_state: State<'_, comm::CommState>,
 ) -> SpinnerResponse<(ChannelState, Vec<PlanLeg>)> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
@@ -253,7 +255,7 @@ fn query_channel(
 #[get("/channels/<id>/state")]
 fn query_channel_state(
     id: u8,
-    comm_state: State<comm::CommState>,
+    comm_state: State<'_, comm::CommState>,
 ) -> SpinnerResponse<ChannelState> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
@@ -271,7 +273,7 @@ fn query_channel_state(
 fn set_channel_state<'a>(
     id: u8,
     new_state: Json<ChannelCommand>,
-    comm_state: State<comm::CommState>,
+    comm_state: State<'_, comm::CommState>,
 ) -> Result<Response<'a>, SpinnerError> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
@@ -293,7 +295,7 @@ fn set_channel_state<'a>(
 }
 
 #[get("/channels/<id>/plan")]
-fn query_plan(id: u8, comm_state: State<comm::CommState>) -> SpinnerResponse<Vec<PlanLeg>> {
+fn query_plan(id: u8, comm_state: State<'_, comm::CommState>) -> SpinnerResponse<Vec<PlanLeg>> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 
     match send_channel_plan_query_msg(id, &comm) {
@@ -310,7 +312,7 @@ fn query_plan(id: u8, comm_state: State<comm::CommState>) -> SpinnerResponse<Vec
 fn set_plan<'a>(
     id: u8,
     new_plan: Json<Vec<PlanLeg>>,
-    comm_state: State<comm::CommState>,
+    comm_state: State<'_, comm::CommState>,
 ) -> Result<Response<'a>, SpinnerError> {
     let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
 

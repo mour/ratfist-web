@@ -8,6 +8,8 @@ use crate::meteo::MeteoError;
 use diesel::insert_into;
 use diesel::prelude::*;
 
+use log::warn;
+
 use std::convert::TryFrom;
 
 use crate::comm::CommState;

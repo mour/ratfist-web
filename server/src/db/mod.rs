@@ -23,7 +23,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for Db {
     type Error = ();
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        let pool = request.guard::<State<DbConnPool>>()?;
+        let pool = request.guard::<State<'_, DbConnPool>>()?;
 
         match pool.get() {
             Ok(conn) => Outcome::Success(Db(conn)),

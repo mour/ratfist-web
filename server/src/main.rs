@@ -3,30 +3,19 @@
 #[macro_use]
 extern crate rocket;
 
-extern crate rocket_contrib;
-
-extern crate regex;
-
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
 
-#[macro_use]
-extern crate log;
-
-extern crate serial;
-
-extern crate dotenv;
-
-extern crate chrono;
+use dotenv;
 
 #[macro_use]
 extern crate diesel;
 
-extern crate scheduled_executor;
+use scheduled_executor;
 
 use std::time::Duration;
 
+use log::{debug, trace, warn};
 
 #[cfg(feature = "spinner")]
 mod spinner;

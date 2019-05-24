@@ -14,6 +14,8 @@ use crate::db::DbConnPool;
 
 use diesel::prelude::*;
 
+use log::{debug, warn};
+
 use crate::CoreError;
 
 mod serial;
