@@ -68,10 +68,7 @@ fn get_measurements(
     Ok(output_map)
 }
 
-#[get(
-    "/<id_range>/pressure?<from>&<to>",
-    format = "application/json"
-)]
+#[get("/<id_range>/pressure?<from>&<to>", format = "application/json")]
 pub fn get_stored_pressure(
     id_range: IdRange,
     from: DateTimeUtc,
@@ -82,17 +79,11 @@ pub fn get_stored_pressure(
         &db_conn,
         SensorTypeEnum::Pressure,
         &id_range,
-        &TimeRangeOptionalEndTime{
-            from,
-            to
-        },
+        &TimeRangeOptionalEndTime { from, to },
     )?))
 }
 
-#[get(
-    "/<id_range>/temperature?<from>&<to>",
-    format = "application/json"
-)]
+#[get("/<id_range>/temperature?<from>&<to>", format = "application/json")]
 pub fn get_stored_temperature(
     id_range: IdRange,
     from: DateTimeUtc,
@@ -103,17 +94,11 @@ pub fn get_stored_temperature(
         &db_conn,
         SensorTypeEnum::Temperature,
         &id_range,
-        &TimeRangeOptionalEndTime{
-            from,
-            to
-        },
+        &TimeRangeOptionalEndTime { from, to },
     )?))
 }
 
-#[get(
-    "/<id_range>/humidity?<from>&<to>",
-    format = "application/json"
-)]
+#[get("/<id_range>/humidity?<from>&<to>", format = "application/json")]
 pub fn get_stored_humidity(
     id_range: IdRange,
     from: DateTimeUtc,
@@ -124,17 +109,11 @@ pub fn get_stored_humidity(
         &db_conn,
         SensorTypeEnum::Humidity,
         &id_range,
-        &TimeRangeOptionalEndTime{
-            from,
-            to
-        },
+        &TimeRangeOptionalEndTime { from, to },
     )?))
 }
 
-#[get(
-    "/<id_range>/light_level?<from>&<to>",
-    format = "application/json"
-)]
+#[get("/<id_range>/light_level?<from>&<to>", format = "application/json")]
 pub fn get_stored_light_level(
     id_range: IdRange,
     from: DateTimeUtc,
@@ -145,9 +124,6 @@ pub fn get_stored_light_level(
         &db_conn,
         SensorTypeEnum::LightLevel,
         &id_range,
-        &TimeRangeOptionalEndTime{
-            from,
-            to
-        },
+        &TimeRangeOptionalEndTime { from, to },
     )?))
 }

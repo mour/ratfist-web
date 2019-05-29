@@ -15,6 +15,8 @@ use log::warn;
 
 use std::collections::HashMap;
 
+use std::borrow::Borrow;
+
 use diesel::prelude::*;
 use std::convert::TryFrom;
 
@@ -29,8 +31,10 @@ pub struct SensorState {
 
 // FIXME Remove this endpoint during work on #15. Added only for initial version of ratfist-mobile.
 #[get("/current")]
-pub fn query_all_sensors(db_conn: Db, comm_state: State<'_, comm::CommState>) -> MeteoResponse<Vec<SensorState>> {
-
+pub fn query_all_sensors(
+    db_conn: Db,
+    comm_state: State<'_, comm::CommState>,
+) -> MeteoResponse<Vec<SensorState>> {
     let mut output = Vec::new();
 
     let sensors = {
@@ -39,7 +43,8 @@ pub fn query_all_sensors(db_conn: Db, comm_state: State<'_, comm::CommState>) ->
         sensors::table
             .inner_join(sensor_types::table)
             .load::<(Sensor, SensorType)>(&*db_conn)
-    }.map_err(|_| MeteoError)?;
+    }
+    .map_err(|_| MeteoError)?;
 
     for (ref sensor, ref sensor_type) in &sensors {
         // Send message querying each sensor
@@ -92,7 +97,8 @@ pub fn query_all_sensors(db_conn: Db, comm_state: State<'_, comm::CommState>) ->
             SensorTypeEnum::Temperature => "Temperature",
             SensorTypeEnum::Humidity => "Humidity",
             SensorTypeEnum::LightLevel => "Light Level",
-        }.to_string();
+        }
+        .to_string();
 
         output.push(SensorState {
             id: sens_id,
@@ -104,99 +110,67 @@ pub fn query_all_sensors(db_conn: Db, comm_state: State<'_, comm::CommState>) ->
     Ok(Json(output))
 }
 
-
-#[get("/<id_range>/pressure")]
-pub fn query_current_pressure(
-    id_range: IdRange,
+#[get("/<node_ids>/<sensor_type>/<sensor_ids>", format = "application/json")]
+pub fn query_current_value(
+    node_ids: IdRange,
+    sensor_type: SensorTypeEnum,
+    sensor_ids: IdRange,
     comm_state: State<'_, comm::CommState>,
-) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
+    db_conn: Db,
+) -> MeteoResponse<HashMap<u32, HashMap<String, HashMap<u32, f32>>>> {
+    let mut response_map = HashMap::new();
 
-    let mut press_map = HashMap::new();
+    for node_id in node_ids {
+        let comm = comm_state
+            .get_comm_channel(node_id)
+            .map_err(|_| MeteoError)?;
 
-    for id in id_range {
-        let resp = transfer(&comm, OutgoingMessage::GetPressure(id))?;
+        for sensor_id in sensor_ids.iter() {
+            let outgoing_msg = match sensor_type {
+                SensorTypeEnum::Pressure => OutgoingMessage::GetPressure(*sensor_id),
+                SensorTypeEnum::Temperature => OutgoingMessage::GetTemperature(*sensor_id),
+                SensorTypeEnum::Humidity => OutgoingMessage::GetHumidity(*sensor_id),
+                SensorTypeEnum::LightLevel => OutgoingMessage::GetLightLevel(*sensor_id),
+            };
 
-        match resp {
-            IncomingMessage::Pressure(ch, val) if ch == id => {
-                press_map.insert(ch, val);
-            }
-            IncomingMessage::RetVal(_val) => {}
-            _ => return Err(MeteoError),
+            let incoming_msg = transfer(&comm, outgoing_msg)?;
+
+            let val = match incoming_msg {
+                IncomingMessage::Pressure(in_sensor_id, val)
+                    if sensor_type == SensorTypeEnum::Pressure && in_sensor_id == *sensor_id =>
+                {
+                    val
+                }
+                IncomingMessage::Temperature(in_sensor_id, val)
+                    if sensor_type == SensorTypeEnum::Temperature && in_sensor_id == *sensor_id =>
+                {
+                    val
+                }
+                IncomingMessage::Humidity(in_sensor_id, val)
+                    if sensor_type == SensorTypeEnum::Humidity && in_sensor_id == *sensor_id =>
+                {
+                    val
+                }
+                IncomingMessage::LightLevel(in_sensor_id, val)
+                    if sensor_type == SensorTypeEnum::LightLevel && in_sensor_id == *sensor_id =>
+                {
+                    val
+                }
+                _ => {
+                    return Err(MeteoError);
+                }
+            };
+
+            let sensor_type_str: &str = sensor_type.borrow();
+
+            response_map
+                .entry(node_id)
+                .or_insert_with(HashMap::new)
+                .entry(sensor_type_str.to_string())
+                .or_insert_with(HashMap::new)
+                .insert(*sensor_id, val);
         }
     }
 
-    Ok(Json(press_map))
-}
-
-#[get("/<id_range>/temperature")]
-pub fn query_current_temperature(
-    id_range: IdRange,
-    comm_state: State<'_, comm::CommState>,
-) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
-
-    let mut press_map = HashMap::new();
-
-    for id in id_range {
-        let resp = transfer(&comm, OutgoingMessage::GetTemperature(id))?;
-
-        match resp {
-            IncomingMessage::Temperature(ch, val) if ch == id => {
-                press_map.insert(ch, val);
-            }
-            IncomingMessage::RetVal(_val) => {}
-            _ => return Err(MeteoError),
-        }
-    }
-
-    Ok(Json(press_map))
-}
-
-#[get("/<id_range>/humidity")]
-pub fn query_current_humidity(
-    id_range: IdRange,
-    comm_state: State<'_, comm::CommState>,
-) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
-
-    let mut press_map = HashMap::new();
-
-    for id in id_range {
-        let resp = transfer(&comm, OutgoingMessage::GetHumidity(id))?;
-
-        match resp {
-            IncomingMessage::Humidity(ch, val) if ch == id => {
-                press_map.insert(ch, val);
-            }
-            IncomingMessage::RetVal(_val) => {}
-            _ => return Err(MeteoError),
-        }
-    }
-
-    Ok(Json(press_map))
-}
-
-#[get("/<id_range>/light_level")]
-pub fn query_current_light_level(
-    id_range: IdRange,
-    comm_state: State<'_, comm::CommState>,
-) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| MeteoError)?;
-
-    let mut press_map = HashMap::new();
-
-    for id in id_range {
-        let resp = transfer(&comm, OutgoingMessage::GetLightLevel(id))?;
-
-        match resp {
-            IncomingMessage::LightLevel(ch, val) if ch == id => {
-                press_map.insert(ch, val);
-            }
-            IncomingMessage::RetVal(_val) => {}
-            _ => return Err(MeteoError),
-        }
-    }
-
-    Ok(Json(press_map))
+    Ok(Json(response_map))
 }

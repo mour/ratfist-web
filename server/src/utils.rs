@@ -120,7 +120,9 @@ impl<'v> FromFormValue<'v> for DateTimeUtc {
 
     fn from_form_value(form_value: &'v RawStr) -> Result<DateTimeUtc, &'v RawStr> {
         Ok(DateTimeUtc(
-            form_value.parse::<DateTime<Utc>>().map_err(|_| form_value)?,
+            form_value
+                .parse::<DateTime<Utc>>()
+                .map_err(|_| form_value)?,
         ))
     }
 }

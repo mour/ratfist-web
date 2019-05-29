@@ -1,4 +1,3 @@
-
 use dotenv;
 
 use serial;
@@ -10,13 +9,13 @@ use std::sync::mpsc;
 
 use super::CommChannelTx;
 
-
 pub fn create_serial_comm_task(serial_id: u32) -> (CommChannelTx, thread::JoinHandle<()>) {
     let env_var_str = format!("SERIAL_PORT_{}_PATH", serial_id);
 
     let mut serial_port = serial::open(
         &dotenv::var(&env_var_str).expect(&format!("missing {} env variable", env_var_str)),
-    ).expect("could not open serial port");
+    )
+    .expect("could not open serial port");
 
     let settings = serial::PortSettings {
         baud_rate: serial::Baud115200,

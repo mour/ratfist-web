@@ -169,8 +169,8 @@ pub fn init(db_conn_pool: &DbConnPool) -> (CommState, Vec<thread::JoinHandle<()>
         use crate::db::schema::*;
 
         nodes::table.load::<Node>(&db)
-    }.expect("could not load node info from DB");
-
+    }
+    .expect("could not load node info from DB");
 
     // Open the appropriate listeners
     let mut node_channels = HashMap::new();
@@ -179,13 +179,15 @@ pub fn init(db_conn_pool: &DbConnPool) -> (CommState, Vec<thread::JoinHandle<()>
     for node in nodes {
         match node.route_type.as_str() {
             "serial" => {
-                let serial_route_id = node.route_param
+                let serial_route_id = node
+                    .route_param
                     .expect("missing serial route ID in DB")
                     .parse()
                     .expect("failed to parse serial route ID");
 
                 node_channels.entry(serial_route_id).or_insert_with(|| {
-                    let (channel_tx, join_handle) = serial::create_serial_comm_task(serial_route_id);
+                    let (channel_tx, join_handle) =
+                        serial::create_serial_comm_task(serial_route_id);
 
                     join_handles.push(join_handle);
 

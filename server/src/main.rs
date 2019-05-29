@@ -27,10 +27,8 @@ mod comm;
 mod db;
 mod utils;
 
-
 #[derive(Debug)]
 pub struct CoreError;
-
 
 fn main() {
     let path = dotenv::dotenv().ok();

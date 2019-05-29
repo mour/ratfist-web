@@ -1,3 +1,6 @@
+use rocket::http::RawStr;
+use rocket::request::FromParam;
+
 use super::schema::{measurements, sensor_types, sensors};
 use super::MeteoError;
 
@@ -5,7 +8,6 @@ use crate::utils::DateTimeUtc;
 
 use std::borrow::Borrow;
 use std::convert::TryFrom;
-
 
 #[derive(Identifiable, Queryable, Debug, Clone)]
 pub(super) struct Sensor {
@@ -32,7 +34,7 @@ pub(super) struct SensorType {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub(super) enum SensorTypeEnum {
+pub enum SensorTypeEnum {
     Pressure,
     Temperature,
     Humidity,
@@ -45,7 +47,7 @@ impl Borrow<str> for SensorTypeEnum {
             SensorTypeEnum::Pressure => "pressure",
             SensorTypeEnum::Temperature => "temperature",
             SensorTypeEnum::Humidity => "humidity",
-            SensorTypeEnum::LightLevel => "light level",
+            SensorTypeEnum::LightLevel => "light_level",
         }
     }
 }
@@ -58,8 +60,16 @@ impl<'a> TryFrom<&'a str> for SensorTypeEnum {
             "pressure" => Ok(SensorTypeEnum::Pressure),
             "temperature" => Ok(SensorTypeEnum::Temperature),
             "humidity" => Ok(SensorTypeEnum::Humidity),
-            "light level" => Ok(SensorTypeEnum::LightLevel),
+            "light_level" => Ok(SensorTypeEnum::LightLevel),
             _ => Err(MeteoError),
         }
+    }
+}
+
+impl<'req> FromParam<'req> for SensorTypeEnum {
+    type Error = MeteoError;
+
+    fn from_param(param: &'req RawStr) -> Result<Self, Self::Error> {
+        SensorTypeEnum::try_from(param.as_str())
     }
 }

@@ -1,5 +1,5 @@
-use crate::db::DbConnPool;
 use crate::db::models::Node;
+use crate::db::DbConnPool;
 
 use crate::meteo::messages::{transfer, IncomingMessage, OutgoingMessage};
 use crate::meteo::models::{Sensor, SensorType, SensorTypeEnum};
@@ -24,14 +24,15 @@ pub fn fetcher_iteration(
 
     // Get all sensors
     let sensors = {
-        use crate::meteo::schema::*;
         use crate::db::schema::*;
+        use crate::meteo::schema::*;
 
         sensors::table
             .inner_join(sensor_types::table)
             .inner_join(nodes::table)
             .load::<(Sensor, SensorType, Node)>(&db)
-    }.map_err(|_| MeteoError)?;
+    }
+    .map_err(|_| MeteoError)?;
 
     let curr_time = DateTimeUtc::now();
 
@@ -47,7 +48,9 @@ pub fn fetcher_iteration(
                 SensorTypeEnum::LightLevel => OutgoingMessage::GetLightLevel(sens_id),
             };
 
-            let channel = comm_state.get_comm_channel(node.public_id as u32).map_err(|_| MeteoError)?;
+            let channel = comm_state
+                .get_comm_channel(node.public_id as u32)
+                .map_err(|_| MeteoError)?;
 
             let measured_val = match transfer(&channel, outgoing_msg) {
                 Ok(IncomingMessage::Pressure(id, val))

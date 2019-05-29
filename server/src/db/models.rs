@@ -1,4 +1,4 @@
-use super::schema::{nodes};
+use super::schema::nodes;
 
 #[derive(Identifiable, Queryable, Debug, Clone)]
 pub struct Node {
@@ -6,5 +6,5 @@ pub struct Node {
     pub public_id: i32,
     pub name: String,
     pub route_type: String,
-    pub route_param: Option<String>
+    pub route_param: Option<String>,
 }

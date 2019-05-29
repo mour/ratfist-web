@@ -14,8 +14,8 @@ pub(super) enum OutgoingMessage {
     GetLightLevel(u32),
 }
 
-impl From<OutgoingMessage> for String {
-    fn from(msg: OutgoingMessage) -> String {
+impl From<&OutgoingMessage> for String {
+    fn from(msg: &OutgoingMessage) -> String {
         match msg {
             OutgoingMessage::GetPressure(ch) => format!("METEO,GET_PRESSURE,{}", ch),
             OutgoingMessage::GetTemperature(ch) => format!("METEO,GET_TEMPERATURE,{}", ch),
@@ -122,7 +122,7 @@ pub(super) fn transfer(
     comm_ch: &comm::CommChannelTx,
     msg: OutgoingMessage,
 ) -> Result<IncomingMessage, MeteoError> {
-    let msg_str = msg.into();
+    let msg_str = (&msg).into();
     debug!("Sending: {}", msg_str);
 
     let response_channel = comm_ch.send(msg_str).map_err(|e| {

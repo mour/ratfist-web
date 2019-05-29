@@ -30,9 +30,4 @@ joinable!(measurements -> sensors (sensor_id));
 joinable!(sensors -> nodes (node_id));
 joinable!(sensors -> sensor_types (type_id));
 
-allow_tables_to_appear_in_same_query!(
-    measurements,
-    nodes,
-    sensor_types,
-    sensors,
-);
+allow_tables_to_appear_in_same_query!(measurements, nodes, sensor_types, sensors,);

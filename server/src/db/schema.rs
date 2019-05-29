@@ -1,4 +1,3 @@
-
 table! {
     nodes (id) {
         id -> Integer,
