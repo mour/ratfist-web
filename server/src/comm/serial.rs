@@ -13,7 +13,8 @@ pub fn create_serial_comm_task(serial_id: u32) -> (CommChannelTx, thread::JoinHa
     let env_var_str = format!("SERIAL_PORT_{}_PATH", serial_id);
 
     let mut serial_port = serial::open(
-        &dotenv::var(&env_var_str).unwrap_or_else(|_| panic!("missing {} env variable", env_var_str)),
+        &dotenv::var(&env_var_str)
+            .unwrap_or_else(|_| panic!("missing {} env variable", env_var_str)),
     )
     .expect("could not open serial port");
 
