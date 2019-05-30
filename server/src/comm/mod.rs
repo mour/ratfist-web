@@ -52,7 +52,7 @@ impl CommChannelTx {
 }
 
 fn calc_checksum(input: &str) -> u8 {
-    input.as_bytes().into_iter().fold(0, |csum, ch| csum ^ ch)
+    input.as_bytes().iter().fold(0, |csum, ch| csum ^ ch)
 }
 
 fn process_incoming_msg(raw_msg: &str) -> Result<(u64, &str), ()> {

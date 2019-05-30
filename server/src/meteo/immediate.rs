@@ -15,8 +15,6 @@ use log::warn;
 
 use std::collections::HashMap;
 
-use std::borrow::Borrow;
-
 use diesel::prelude::*;
 use std::convert::TryFrom;
 
@@ -111,19 +109,20 @@ pub fn query_all_sensors(
 }
 
 #[get("/<node_ids>/<sensor_type>/<sensor_ids>", format = "application/json")]
-pub fn query_current_value(
+pub fn query_current_values(
     node_ids: IdRange,
     sensor_type: SensorTypeEnum,
     sensor_ids: IdRange,
     comm_state: State<'_, comm::CommState>,
-    db_conn: Db,
-) -> MeteoResponse<HashMap<u32, HashMap<String, HashMap<u32, f32>>>> {
+) -> MeteoResponse<HashMap<u32, HashMap<u32, f32>>> {
     let mut response_map = HashMap::new();
 
     for node_id in node_ids {
         let comm = comm_state
             .get_comm_channel(node_id)
             .map_err(|_| MeteoError)?;
+
+        let node_map = response_map.entry(node_id).or_insert_with(HashMap::new);
 
         for sensor_id in sensor_ids.iter() {
             let outgoing_msg = match sensor_type {
@@ -161,14 +160,7 @@ pub fn query_current_value(
                 }
             };
 
-            let sensor_type_str: &str = sensor_type.borrow();
-
-            response_map
-                .entry(node_id)
-                .or_insert_with(HashMap::new)
-                .entry(sensor_type_str.to_string())
-                .or_insert_with(HashMap::new)
-                .insert(*sensor_id, val);
+            node_map.insert(*sensor_id, val);
         }
     }
 
