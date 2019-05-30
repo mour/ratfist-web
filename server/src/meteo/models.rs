@@ -4,12 +4,15 @@ use rocket::request::FromParam;
 use super::schema::{measurements, sensor_types, sensors};
 use super::MeteoError;
 
+use crate::db::models::Node;
+
 use crate::utils::DateTimeUtc;
 
 use std::borrow::Borrow;
 use std::convert::TryFrom;
 
-#[derive(Identifiable, Queryable, Debug, Clone)]
+#[derive(Identifiable, Queryable, Associations, Debug, Clone)]
+#[belongs_to(Node)]
 pub(super) struct Sensor {
     pub id: i32,
     pub public_id: i32,

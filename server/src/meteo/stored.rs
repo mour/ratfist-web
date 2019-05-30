@@ -3,7 +3,9 @@ use rocket_contrib::json::Json;
 use crate::meteo::models::{Measurement, Sensor, SensorType, SensorTypeEnum};
 use crate::meteo::{MeteoError, MeteoResponse};
 
-use crate::utils::{DateTimeUtc, IdRange, TimeRangeOptionalEndTime};
+use crate::db::models::Node;
+
+use crate::utils::{DateTimeUtc, IdRange};
 
 use std::borrow::Borrow;
 use std::collections::HashMap;
@@ -15,11 +17,26 @@ use diesel::ExpressionMethods;
 
 fn get_measurements(
     db_conn: &Db,
+    node_ids: IdRange,
     sensor_type: SensorTypeEnum,
-    sensor_ids: &IdRange,
-    time_range: &TimeRangeOptionalEndTime,
-) -> Result<HashMap<u32, Vec<(DateTimeUtc, f32)>>, MeteoError> {
-    let ids = sensor_ids.iter().map(|v| *v as i32).collect::<Vec<i32>>();
+    sensor_ids: IdRange,
+    from_time: DateTimeUtc,
+    to_time: Option<DateTimeUtc>,
+) -> Result<HashMap<u32, HashMap<u32, Vec<(DateTimeUtc, f32)>>>, MeteoError> {
+    let node_id_vec = node_ids.into_iter().map(|v| v as i32).collect::<Vec<i32>>();
+    let sensor_id_vec = sensor_ids
+        .into_iter()
+        .map(|v| v as i32)
+        .collect::<Vec<i32>>();
+
+    let nodes = {
+        use crate::db::schema::nodes::dsl::*;
+
+        nodes
+            .filter(public_id.eq_any(node_id_vec))
+            .load::<Node>(&**db_conn)
+            .map_err(|_| MeteoError)?
+    };
 
     let sensor_type_id = {
         use crate::meteo::schema::sensor_types::dsl::*;
@@ -32,98 +49,87 @@ fn get_measurements(
             .id
     };
 
-    let sensor_query = {
+    let sensors = {
         use crate::meteo::schema::sensors::dsl::*;
 
-        sensors.filter(public_id.eq_any(ids).and(type_id.eq(sensor_type_id)))
+        Sensor::belonging_to(&nodes)
+            .filter(
+                public_id
+                    .eq_any(sensor_id_vec)
+                    .and(type_id.eq(sensor_type_id)),
+            )
+            .load::<Sensor>(&**db_conn)
+            .map_err(|_| MeteoError)?
     };
 
-    let sensors = sensor_query
-        .load::<Sensor>(&**db_conn)
-        .map_err(|_| MeteoError)?;
-
     let now = DateTimeUtc::now();
-    let measurement_query = {
+    let measurements = {
         use crate::meteo::schema::measurements::dsl::*;
 
         Measurement::belonging_to(&sensors)
             .order_by(measured_at.asc())
-            .filter(measured_at.ge(&time_range.from))
-            .filter(measured_at.le(time_range.to.as_ref().unwrap_or(&now)))
+            .filter(measured_at.ge(&from_time))
+            .filter(measured_at.le(to_time.as_ref().unwrap_or(&now)))
+            .load::<Measurement>(&**db_conn)
+            .map_err(|_| MeteoError)?
     };
 
-    let measurements = measurement_query
-        .load::<Measurement>(&**db_conn)
-        .map_err(|_| MeteoError)?;
+    let grouped_measurements = measurements.grouped_by(&sensors);
+
+    let grouped_sensors = sensors
+        .into_iter()
+        .zip(grouped_measurements)
+        .grouped_by(&nodes);
+
+    let grouped_nodes: Vec<(Node, Vec<(Sensor, Vec<Measurement>)>)> =
+        nodes.into_iter().zip(grouped_sensors).collect();
 
     let mut output_map = HashMap::new();
 
-    for m in measurements {
-        let sensor_vals = output_map
-            .entry(m.sensor_id as u32)
-            .or_insert_with(Vec::new);
-        sensor_vals.push((m.measured_at, m.value));
+    for (node, sensor_group) in grouped_nodes {
+        if sensor_group.is_empty() {
+            continue;
+        }
+
+        let node_map = output_map
+            .entry(node.public_id as u32)
+            .or_insert_with(HashMap::new);
+
+        for (sensor, measurement_vec) in sensor_group {
+            if measurement_vec.is_empty() {
+                continue;
+            }
+
+            let measurement_pairs = measurement_vec
+                .into_iter()
+                .map(|m| (m.measured_at, m.value))
+                .collect();
+
+            node_map.insert(sensor.public_id as u32, measurement_pairs);
+        }
     }
 
     Ok(output_map)
 }
 
-#[get("/<id_range>/pressure?<from>&<to>", format = "application/json")]
-pub fn get_stored_pressure(
-    id_range: IdRange,
+#[get(
+    "/<node_ids>/<sensor_type>/<sensor_ids>?<from>&<to>",
+    format = "application/json"
+)]
+pub fn get_stored_values(
+    node_ids: IdRange,
+    sensor_type: SensorTypeEnum,
+    sensor_ids: IdRange,
     from: DateTimeUtc,
     to: Option<DateTimeUtc>,
     db_conn: Db,
-) -> MeteoResponse<HashMap<u32, Vec<(DateTimeUtc, f32)>>> {
+) -> MeteoResponse<HashMap<u32, HashMap<u32, Vec<(DateTimeUtc, f32)>>>> {
     Ok(Json(get_measurements(
         &db_conn,
-        SensorTypeEnum::Pressure,
-        &id_range,
-        &TimeRangeOptionalEndTime { from, to },
-    )?))
-}
-
-#[get("/<id_range>/temperature?<from>&<to>", format = "application/json")]
-pub fn get_stored_temperature(
-    id_range: IdRange,
-    from: DateTimeUtc,
-    to: Option<DateTimeUtc>,
-    db_conn: Db,
-) -> MeteoResponse<HashMap<u32, Vec<(DateTimeUtc, f32)>>> {
-    Ok(Json(get_measurements(
-        &db_conn,
-        SensorTypeEnum::Temperature,
-        &id_range,
-        &TimeRangeOptionalEndTime { from, to },
-    )?))
-}
-
-#[get("/<id_range>/humidity?<from>&<to>", format = "application/json")]
-pub fn get_stored_humidity(
-    id_range: IdRange,
-    from: DateTimeUtc,
-    to: Option<DateTimeUtc>,
-    db_conn: Db,
-) -> MeteoResponse<HashMap<u32, Vec<(DateTimeUtc, f32)>>> {
-    Ok(Json(get_measurements(
-        &db_conn,
-        SensorTypeEnum::Humidity,
-        &id_range,
-        &TimeRangeOptionalEndTime { from, to },
-    )?))
-}
-
-#[get("/<id_range>/light_level?<from>&<to>", format = "application/json")]
-pub fn get_stored_light_level(
-    id_range: IdRange,
-    from: DateTimeUtc,
-    to: Option<DateTimeUtc>,
-    db_conn: Db,
-) -> MeteoResponse<HashMap<u32, Vec<(DateTimeUtc, f32)>>> {
-    Ok(Json(get_measurements(
-        &db_conn,
-        SensorTypeEnum::LightLevel,
-        &id_range,
-        &TimeRangeOptionalEndTime { from, to },
+        node_ids,
+        sensor_type,
+        sensor_ids,
+        from,
+        to,
     )?))
 }
