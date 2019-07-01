@@ -1,8 +1,15 @@
 [package]
 name = "ratfist_server"
-version = "0.1.0"
+version = "0.5.0"
 authors = ["Ondrej Palenicek <ondrej.palenicek@gmail.com>"]
 edition = "2018"
+
+[[bin]]
+name = "ratfist_server"
+
+[[bin]]
+name = "meteo_cli"
+required-features = ["meteo"]
 
 [dependencies]
 rocket = "0.4"
@@ -17,7 +24,8 @@ dotenv = "0.14"
 diesel = { version = "1", features = ["sqlite", "r2d2", "chrono"] }
 chrono = { version = "0.4", features = ["serde"] }
 scheduled-executor = "0.4"
+prettytable-rs = { version = "^0.8", optional = true }
 
 [features]
 spinner = []
-meteo = []
+meteo = ["prettytable-rs"]
