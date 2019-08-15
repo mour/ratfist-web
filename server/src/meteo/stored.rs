@@ -167,9 +167,8 @@ pub fn get_global_structure(db_conn: Db) -> MeteoResponse<HashMap<u32, HashMap<S
             .grouped_by(&nodes)
     };
 
-    let nodes_and_sensors: Vec<(Node, Vec<Sensor>)> = nodes.into_iter()
-                                .zip(grouped_sensors)
-                                .collect();
+    let nodes_and_sensors: Vec<(Node, Vec<Sensor>)> =
+        nodes.into_iter().zip(grouped_sensors).collect();
 
     let mut output_map = HashMap::new();
 

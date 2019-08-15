@@ -4,8 +4,8 @@ use rocket_contrib::json::Json;
 pub mod fetcher;
 mod immediate;
 mod messages;
-mod models;
-mod schema;
+pub mod models;
+pub mod schema;
 mod stored;
 
 #[derive(Debug)]

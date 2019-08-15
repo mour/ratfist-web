@@ -1,7 +1,6 @@
-
 use dotenv;
-use scheduled_executor;
 use log::{debug, trace, warn};
+use scheduled_executor;
 
 #[cfg(feature = "meteo")]
 use std::time::Duration;
@@ -14,7 +13,6 @@ use ratfist_server::meteo;
 
 use ratfist_server::comm;
 use ratfist_server::db;
-
 
 fn main() {
     let path = dotenv::dotenv().ok();
@@ -50,7 +48,7 @@ fn main() {
             .expect("METEO_FETCHER_TASK_RATE_SECS parsing error");
 
         let executor = scheduled_executor::CoreExecutor::new()
-                        .expect("Could not start periodic task executor");
+            .expect("Could not start periodic task executor");
 
         executor.schedule_fixed_rate(
             Duration::from_secs(fetcher_task_rate),

@@ -13,7 +13,7 @@ use std::convert::TryFrom;
 
 #[derive(Identifiable, Queryable, Associations, Debug, Clone)]
 #[belongs_to(Node)]
-pub(super) struct Sensor {
+pub struct Sensor {
     pub id: i32,
     pub public_id: i32,
     pub node_id: i32,
@@ -31,7 +31,7 @@ pub(super) struct Measurement {
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone)]
-pub(super) struct SensorType {
+pub struct SensorType {
     pub id: i32,
     pub name: String,
 }
