@@ -1,7 +1,12 @@
 use rocket::http::RawStr;
 use rocket::request::FromParam;
 
-use super::schema::{measurements, sensor_types, sensors};
+use diesel::backend::Backend;
+use diesel::types::FromSql;
+use diesel::sql_types::Integer;
+use diesel::sqlite::Sqlite;
+
+use super::schema::{measurements, sensors};
 use super::MeteoError;
 
 use crate::db::models::Node;
@@ -10,6 +15,7 @@ use crate::utils::DateTimeUtc;
 
 use std::borrow::Borrow;
 use std::convert::TryFrom;
+use std::error::Error;
 
 #[derive(Identifiable, Queryable, Associations, Debug, Clone)]
 #[belongs_to(Node)]
@@ -17,7 +23,7 @@ pub struct Sensor {
     pub id: i32,
     pub public_id: i32,
     pub node_id: i32,
-    pub type_id: i32,
+    pub type_id: SensorTypeEnum,
     pub name: String,
 }
 
@@ -30,11 +36,11 @@ pub(super) struct Measurement {
     pub measured_at: DateTimeUtc,
 }
 
-#[derive(Identifiable, Queryable, Debug, Clone)]
-pub struct SensorType {
-    pub id: i32,
-    pub name: String,
-}
+// #[derive(Identifiable, Queryable, Debug, Clone)]
+// pub struct SensorType {
+//     pub id: i32,
+//     pub name: String,
+// }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum SensorTypeEnum {
@@ -66,6 +72,14 @@ impl<'a> TryFrom<&'a str> for SensorTypeEnum {
             "light_level" => Ok(SensorTypeEnum::LightLevel),
             _ => Err(MeteoError),
         }
+    }
+}
+
+impl FromSql<Integer, Sqlite> for SensorTypeEnum {
+    fn from_sql(bytes: Option<&<Sqlite as Backend>::RawValue>) -> Result<SensorTypeEnum, Box<dyn Error + Send + Sync>> {
+
+        let _val = i32::from_sql(bytes)?;
+        Ok(SensorTypeEnum::Humidity)
     }
 }
 

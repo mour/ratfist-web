@@ -7,7 +7,7 @@ use crate::db::Db;
 use super::messages::{transfer, IncomingMessage, OutgoingMessage};
 use super::{MeteoError, MeteoResponse};
 
-use super::models::{Sensor, SensorType, SensorTypeEnum};
+use super::models::{Sensor, SensorTypeEnum};
 
 use crate::utils::IdRange;
 
@@ -39,15 +39,14 @@ pub fn query_all_sensors(
         use crate::meteo::schema::*;
 
         sensors::table
-            .inner_join(sensor_types::table)
-            .load::<(Sensor, SensorType)>(&*db_conn)
+            .load::<Sensor>(&*db_conn)
     }
     .map_err(|_| MeteoError)?;
 
-    for (ref sensor, ref sensor_type) in &sensors {
+    for sensor in &sensors {
         // Send message querying each sensor
 
-        let sensor_type_enum = SensorTypeEnum::try_from(sensor_type.name.as_str())?;
+        let sensor_type_enum = sensor.sensor_id;
         let sens_id = sensor.public_id as u32;
 
         let outgoing_msg = match sensor_type_enum {

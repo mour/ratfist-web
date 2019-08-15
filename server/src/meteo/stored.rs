@@ -1,6 +1,6 @@
 use rocket_contrib::json::Json;
 
-use crate::meteo::models::{Measurement, Sensor, SensorType, SensorTypeEnum};
+use crate::meteo::models::{Measurement, Sensor, SensorTypeEnum};
 use crate::meteo::{MeteoError, MeteoResponse};
 
 use crate::db::models::Node;
@@ -39,17 +39,6 @@ fn get_measurements(
             .map_err(|_| MeteoError)?
     };
 
-    let sensor_type_id = {
-        use crate::meteo::schema::sensor_types::dsl::*;
-
-        let sensor_type_str: &str = sensor_type.borrow();
-        sensor_types
-            .filter(name.eq(sensor_type_str))
-            .first::<SensorType>(&*db_conn)
-            .map_err(|_| MeteoError)?
-            .id
-    };
-
     let sensors = {
         use crate::meteo::schema::sensors::dsl::*;
 
@@ -57,7 +46,7 @@ fn get_measurements(
             .filter(
                 public_id
                     .eq_any(sensor_id_vec)
-                    .and(type_id.eq(sensor_type_id)),
+                    .and(type_id.eq(sensor_type)),
             )
             .load::<Sensor>(&*db_conn)
             .map_err(|_| MeteoError)?
@@ -145,19 +134,6 @@ pub fn get_global_structure(db_conn: Db) -> MeteoResponse<HashMap<u32, HashMap<S
             .map_err(|_| MeteoError)?
     };
 
-    let sensor_type_map = {
-        use crate::meteo::schema::sensor_types;
-
-        sensor_types::table
-            .load::<SensorType>(&*db_conn)
-            .map_err(|_| MeteoError)?
-            .into_iter()
-            .fold(HashMap::new(), |mut m, sensor_type| {
-                m.insert(sensor_type.id, sensor_type.name);
-                m
-            })
-    };
-
     let grouped_sensors: Vec<Vec<Sensor>> = {
         use crate::meteo::schema::sensors::dsl::*;
 
@@ -178,8 +154,9 @@ pub fn get_global_structure(db_conn: Db) -> MeteoResponse<HashMap<u32, HashMap<S
             .or_insert_with(HashMap::new);
 
         for sensor in sensor_vec {
+            let sensor_type_str: &str = sensor.type_id.borrow();
             node_map
-                .entry(sensor_type_map[&sensor.type_id].clone())
+                .entry(sensor_type_str.to_string())
                 .or_insert_with(Vec::new)
                 .push(sensor.public_id as u32);
         }
