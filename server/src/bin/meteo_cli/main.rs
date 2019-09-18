@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use std::borrow::Borrow;
+
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
 
@@ -11,7 +13,7 @@ use prettytable as pt;
 use pt::{cell, row};
 
 use ratfist_server::db::models::Node;
-use ratfist_server::meteo::models::Sensor;
+use ratfist_server::meteo::models::{Sensor, SensorTypeEnum};
 
 /// Prints the supplied data to STDOUT as a formatted ASCII table
 fn print_table(mut title_row: pt::Row, table_rows: Vec<pt::Row>) {
@@ -69,18 +71,6 @@ fn get_sensor_list(db_conn: &SqliteConnection, public_node_id: i32) -> Result<Ve
     Ok(sensors)
 }
 
-fn get_sensor_type_str_map(db_conn: &SqliteConnection) -> HashMap<i32, String> {
-    use ratfist_server::meteo::models::SensorType;
-    use ratfist_server::meteo::schema::sensor_types::dsl::*;
-
-    sensor_types
-        .load::<SensorType>(db_conn)
-        .unwrap()
-        .into_iter()
-        .map(|s| (s.id, s.name))
-        .collect()
-}
-
 // Prints a table with all sensor nodes
 fn list_all_nodes(db_conn: &SqliteConnection) {
     let nodes = get_node_list(db_conn);
@@ -104,8 +94,6 @@ fn list_all_nodes(db_conn: &SqliteConnection) {
 fn list_sensors_in_node(db_conn: &SqliteConnection, node_id: i32) {
     match get_sensor_list(db_conn, node_id) {
         Ok(sensors) => {
-            let sensor_name_map = get_sensor_type_str_map(db_conn);
-
             println!("Sensors in node {}:", node_id);
             print_table(
                 row!["Public ID", "Type", "Name"],
@@ -114,7 +102,7 @@ fn list_sensors_in_node(db_conn: &SqliteConnection, node_id: i32) {
                     .map(|sensor| {
                         row![
                             sensor.public_id,
-                            sensor_name_map[&sensor.type_id],
+                            <SensorTypeEnum as Borrow<str>>::borrow(&sensor.sensor_type),
                             sensor.name
                         ]
                     })
