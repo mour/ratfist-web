@@ -13,7 +13,6 @@ use crate::db::models::Node;
 
 use crate::utils::DateTimeUtc;
 
-use std::borrow::Borrow;
 use std::convert::TryFrom;
 use std::io::Write;
 
@@ -46,8 +45,8 @@ pub enum SensorTypeEnum {
     LightLevel = 3,
 }
 
-impl Borrow<str> for SensorTypeEnum {
-    fn borrow(&self) -> &'static str {
+impl AsRef<str> for SensorTypeEnum {
+    fn as_ref(&self) -> &'static str {
         match self {
             SensorTypeEnum::Pressure => "pressure",
             SensorTypeEnum::Temperature => "temperature",

@@ -38,8 +38,8 @@ fn main() {
     let rocket = rocket.mount("/spinner", spinner::get_routes());
 
     #[cfg(feature = "meteo")]
-    let executor = scheduled_executor::CoreExecutor::new()
-        .expect("Could not start periodic task executor");
+    let executor =
+        scheduled_executor::CoreExecutor::new().expect("Could not start periodic task executor");
 
     #[cfg(feature = "meteo")]
     let rocket = {

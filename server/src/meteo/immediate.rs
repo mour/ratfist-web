@@ -13,7 +13,6 @@ use crate::utils::IdRange;
 
 use log::warn;
 
-use std::borrow::Borrow;
 use std::collections::HashMap;
 
 use diesel::prelude::*;
@@ -86,11 +85,9 @@ pub fn query_all_sensors(
             }
         };
 
-        let sensor_type_str: &str = sensor.sensor_type.borrow();
-
         output.push(SensorState {
             id: sens_id,
-            sensor_type: sensor_type_str.to_string(),
+            sensor_type: sensor.sensor_type.as_ref().to_string(),
             last_val: measured_val,
         });
     }

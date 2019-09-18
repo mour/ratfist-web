@@ -7,7 +7,6 @@ use crate::db::models::Node;
 
 use crate::utils::{DateTimeUtc, IdRange};
 
-use std::borrow::Borrow;
 use std::collections::HashMap;
 
 use crate::db::Db;
@@ -18,7 +17,7 @@ use diesel::ExpressionMethods;
 fn get_measurements(
     db_conn: Db,
     node_ids: IdRange,
-    sensor_type: SensorTypeEnum,
+    queried_sensor_type: SensorTypeEnum,
     sensor_ids: IdRange,
     from_time: DateTimeUtc,
     to_time: Option<DateTimeUtc>,
@@ -43,7 +42,11 @@ fn get_measurements(
         use crate::meteo::schema::sensors::dsl::*;
 
         Sensor::belonging_to(&nodes)
-            .filter(public_id.eq_any(sensor_id_vec).and(sensor_type.eq(sensor_type)))
+            .filter(
+                public_id
+                    .eq_any(sensor_id_vec)
+                    .and(sensor_type.eq(queried_sensor_type)),
+            )
             .load::<Sensor>(&*db_conn)
             .map_err(|_| MeteoError)?
     };
@@ -148,9 +151,8 @@ pub fn get_global_structure(db_conn: Db) -> MeteoResponse<HashMap<u32, HashMap<S
             .or_insert_with(HashMap::new);
 
         for sensor in sensor_vec {
-            let sensor_type_str: &str = sensor.sensor_type.borrow();
             node_map
-                .entry(sensor_type_str.to_string())
+                .entry(sensor.sensor_type.as_ref().to_string())
                 .or_insert_with(Vec::new)
                 .push(sensor.public_id as u32);
         }
