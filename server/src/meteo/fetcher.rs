@@ -10,8 +10,6 @@ use diesel::prelude::*;
 
 use log::warn;
 
-use std::convert::TryFrom;
-
 use crate::comm::CommState;
 
 use crate::utils::DateTimeUtc;
@@ -38,9 +36,8 @@ pub fn fetcher_iteration(
     for (ref sensor, ref node) in &sensors {
         // Send message querying each sensor
         let sens_id = sensor.public_id as u32;
-        let sensor_type_enum = sensor.type_id;
 
-        let outgoing_msg = match sensor_type_enum {
+        let outgoing_msg = match sensor.sensor_type {
             SensorTypeEnum::Pressure => OutgoingMessage::GetPressure(sens_id),
             SensorTypeEnum::Temperature => OutgoingMessage::GetTemperature(sens_id),
             SensorTypeEnum::Humidity => OutgoingMessage::GetHumidity(sens_id),
@@ -53,22 +50,22 @@ pub fn fetcher_iteration(
 
         let measured_val = match transfer(&channel, outgoing_msg) {
             Ok(IncomingMessage::Pressure(id, val))
-                if id == sens_id && sensor_type_enum == SensorTypeEnum::Pressure =>
+                if id == sens_id && sensor.sensor_type == SensorTypeEnum::Pressure =>
             {
                 val
             }
             Ok(IncomingMessage::Temperature(id, val))
-                if id == sens_id && sensor_type_enum == SensorTypeEnum::Temperature =>
+                if id == sens_id && sensor.sensor_type == SensorTypeEnum::Temperature =>
             {
                 val
             }
             Ok(IncomingMessage::Humidity(id, val))
-                if id == sens_id && sensor_type_enum == SensorTypeEnum::Humidity =>
+                if id == sens_id && sensor.sensor_type == SensorTypeEnum::Humidity =>
             {
                 val
             }
             Ok(IncomingMessage::LightLevel(id, val))
-                if id == sens_id && sensor_type_enum == SensorTypeEnum::LightLevel =>
+                if id == sens_id && sensor.sensor_type == SensorTypeEnum::LightLevel =>
             {
                 val
             }

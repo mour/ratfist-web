@@ -15,15 +15,12 @@ mod stored;
 pub struct MeteoError;
 
 impl Display for MeteoError {
-	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-		writeln!(fmt, "{:?}", Self)
-	}
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        writeln!(fmt, "{:?}", Self)
+    }
 }
 
 impl Error for MeteoError {}
-unsafe impl Sync for MeteoError {}
-unsafe impl Send for MeteoError {}
-
 
 type MeteoResponse<T> = Result<Json<T>, MeteoError>;
 

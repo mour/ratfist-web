@@ -1,11 +1,19 @@
-use crate::db::schema::nodes;
-
 table! {
     measurements (id) {
         id -> Integer,
         sensor_id -> Integer,
         value -> Float,
-        measured_at -> BigInt,
+        measured_at -> Integer,
+    }
+}
+
+table! {
+    nodes (id) {
+        id -> Integer,
+        public_id -> Integer,
+        name -> Text,
+        route_type -> Text,
+        route_param -> Nullable<Text>,
     }
 }
 
@@ -22,4 +30,8 @@ table! {
 joinable!(measurements -> sensors (sensor_id));
 joinable!(sensors -> nodes (node_id));
 
-allow_tables_to_appear_in_same_query!(measurements, nodes, sensors,);
+allow_tables_to_appear_in_same_query!(
+    measurements,
+    nodes,
+    sensors,
+);

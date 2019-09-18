@@ -43,11 +43,7 @@ fn get_measurements(
         use crate::meteo::schema::sensors::dsl::*;
 
         Sensor::belonging_to(&nodes)
-            .filter(
-                public_id
-                    .eq_any(sensor_id_vec)
-                    .and(type_id.eq(sensor_type)),
-            )
+            .filter(public_id.eq_any(sensor_id_vec).and(sensor_type.eq(sensor_type)))
             .load::<Sensor>(&*db_conn)
             .map_err(|_| MeteoError)?
     };
@@ -135,8 +131,6 @@ pub fn get_global_structure(db_conn: Db) -> MeteoResponse<HashMap<u32, HashMap<S
     };
 
     let grouped_sensors: Vec<Vec<Sensor>> = {
-        use crate::meteo::schema::sensors::dsl::*;
-
         Sensor::belonging_to(&nodes)
             .load::<Sensor>(&*db_conn)
             .map_err(|_| MeteoError)?
@@ -154,7 +148,7 @@ pub fn get_global_structure(db_conn: Db) -> MeteoResponse<HashMap<u32, HashMap<S
             .or_insert_with(HashMap::new);
 
         for sensor in sensor_vec {
-            let sensor_type_str: &str = sensor.type_id.borrow();
+            let sensor_type_str: &str = sensor.sensor_type.borrow();
             node_map
                 .entry(sensor_type_str.to_string())
                 .or_insert_with(Vec::new)

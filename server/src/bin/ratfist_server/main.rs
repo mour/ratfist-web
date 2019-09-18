@@ -38,6 +38,10 @@ fn main() {
     let rocket = rocket.mount("/spinner", spinner::get_routes());
 
     #[cfg(feature = "meteo")]
+    let executor = scheduled_executor::CoreExecutor::new()
+        .expect("Could not start periodic task executor");
+
+    #[cfg(feature = "meteo")]
     let rocket = {
         let db_pool_clone = db_pool.clone();
         let comm_clone = comm.clone();
@@ -46,9 +50,6 @@ fn main() {
             .expect("missing METEO_FETCHER_TASK_RATE_SECS env variable")
             .parse()
             .expect("METEO_FETCHER_TASK_RATE_SECS parsing error");
-
-        let executor = scheduled_executor::CoreExecutor::new()
-            .expect("Could not start periodic task executor");
 
         executor.schedule_fixed_rate(
             Duration::from_secs(fetcher_task_rate),

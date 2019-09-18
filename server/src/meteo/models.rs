@@ -2,9 +2,9 @@ use rocket::http::RawStr;
 use rocket::request::FromParam;
 
 use diesel::backend::Backend;
-use diesel::types::FromSql;
+use diesel::deserialize::{self, FromSql};
+use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Integer;
-use diesel::sqlite::Sqlite;
 
 use super::schema::{measurements, sensors};
 use super::MeteoError;
@@ -15,7 +15,7 @@ use crate::utils::DateTimeUtc;
 
 use std::borrow::Borrow;
 use std::convert::TryFrom;
-use std::error::Error;
+use std::io::Write;
 
 #[derive(Identifiable, Queryable, Associations, Debug, Clone)]
 #[belongs_to(Node)]
@@ -23,7 +23,7 @@ pub struct Sensor {
     pub id: i32,
     pub public_id: i32,
     pub node_id: i32,
-    pub type_id: SensorTypeEnum,
+    pub sensor_type: SensorTypeEnum,
     pub name: String,
 }
 
@@ -36,18 +36,14 @@ pub(super) struct Measurement {
     pub measured_at: DateTimeUtc,
 }
 
-// #[derive(Identifiable, Queryable, Debug, Clone)]
-// pub struct SensorType {
-//     pub id: i32,
-//     pub name: String,
-// }
-
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, FromSqlRow, AsExpression)]
+#[sql_type = "Integer"]
+#[repr(i32)]
 pub enum SensorTypeEnum {
-    Pressure,
-    Temperature,
-    Humidity,
-    LightLevel,
+    Pressure = 0,
+    Temperature = 1,
+    Humidity = 2,
+    LightLevel = 3,
 }
 
 impl Borrow<str> for SensorTypeEnum {
@@ -75,11 +71,30 @@ impl<'a> TryFrom<&'a str> for SensorTypeEnum {
     }
 }
 
-impl FromSql<Integer, Sqlite> for SensorTypeEnum {
-    fn from_sql(bytes: Option<&<Sqlite as Backend>::RawValue>) -> Result<SensorTypeEnum, Box<dyn Error + Send + Sync>> {
+impl<DB> FromSql<Integer, DB> for SensorTypeEnum
+where
+    DB: Backend,
+    i32: FromSql<Integer, DB>,
+{
+    fn from_sql(bytes: Option<&<DB as Backend>::RawValue>) -> deserialize::Result<Self> {
+        let raw_val = i32::from_sql(bytes)?;
+        match raw_val {
+            x if x == SensorTypeEnum::Pressure as i32 => Ok(SensorTypeEnum::Pressure),
+            x if x == SensorTypeEnum::Temperature as i32 => Ok(SensorTypeEnum::Temperature),
+            x if x == SensorTypeEnum::Humidity as i32 => Ok(SensorTypeEnum::Humidity),
+            x if x == SensorTypeEnum::LightLevel as i32 => Ok(SensorTypeEnum::LightLevel),
+            _ => Err(Box::new(MeteoError)),
+        }
+    }
+}
 
-        let _val = i32::from_sql(bytes)?;
-        Ok(SensorTypeEnum::Humidity)
+impl<DB> ToSql<Integer, DB> for SensorTypeEnum
+where
+    DB: Backend,
+    i32: ToSql<Integer, DB>,
+{
+    fn to_sql<W: Write>(&self, out: &mut Output<W, DB>) -> serialize::Result {
+        (*self as i32).to_sql(out)
     }
 }
 
