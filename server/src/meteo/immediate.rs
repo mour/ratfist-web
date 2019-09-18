@@ -7,16 +7,16 @@ use crate::db::Db;
 use super::messages::{transfer, IncomingMessage, OutgoingMessage};
 use super::{MeteoError, MeteoResponse};
 
-use super::models::{Sensor, SensorType, SensorTypeEnum};
+use super::models::{Sensor, SensorTypeEnum};
 
 use crate::utils::IdRange;
 
 use log::warn;
 
+use std::borrow::Borrow;
 use std::collections::HashMap;
 
 use diesel::prelude::*;
-use std::convert::TryFrom;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SensorState {
@@ -38,19 +38,15 @@ pub fn query_all_sensors(
     let sensors = {
         use crate::meteo::schema::*;
 
-        sensors::table
-            .inner_join(sensor_types::table)
-            .load::<(Sensor, SensorType)>(&*db_conn)
+        sensors::table.load::<Sensor>(&*db_conn)
     }
     .map_err(|_| MeteoError)?;
 
-    for (ref sensor, ref sensor_type) in &sensors {
+    for sensor in &sensors {
         // Send message querying each sensor
-
-        let sensor_type_enum = SensorTypeEnum::try_from(sensor_type.name.as_str())?;
         let sens_id = sensor.public_id as u32;
 
-        let outgoing_msg = match sensor_type_enum {
+        let outgoing_msg = match sensor.sensor_type {
             SensorTypeEnum::Pressure => OutgoingMessage::GetPressure(sens_id),
             SensorTypeEnum::Temperature => OutgoingMessage::GetTemperature(sens_id),
             SensorTypeEnum::Humidity => OutgoingMessage::GetHumidity(sens_id),
@@ -61,22 +57,22 @@ pub fn query_all_sensors(
 
         let measured_val = match transfer(&channel, outgoing_msg) {
             Ok(IncomingMessage::Pressure(id, val))
-                if id == sens_id && sensor_type_enum == SensorTypeEnum::Pressure =>
+                if id == sens_id && sensor.sensor_type == SensorTypeEnum::Pressure =>
             {
                 val
             }
             Ok(IncomingMessage::Temperature(id, val))
-                if id == sens_id && sensor_type_enum == SensorTypeEnum::Temperature =>
+                if id == sens_id && sensor.sensor_type == SensorTypeEnum::Temperature =>
             {
                 val
             }
             Ok(IncomingMessage::Humidity(id, val))
-                if id == sens_id && sensor_type_enum == SensorTypeEnum::Humidity =>
+                if id == sens_id && sensor.sensor_type == SensorTypeEnum::Humidity =>
             {
                 val
             }
             Ok(IncomingMessage::LightLevel(id, val))
-                if id == sens_id && sensor_type_enum == SensorTypeEnum::LightLevel =>
+                if id == sens_id && sensor.sensor_type == SensorTypeEnum::LightLevel =>
             {
                 val
             }
@@ -90,17 +86,11 @@ pub fn query_all_sensors(
             }
         };
 
-        let sensor_type_str = match sensor_type_enum {
-            SensorTypeEnum::Pressure => "Pressure",
-            SensorTypeEnum::Temperature => "Temperature",
-            SensorTypeEnum::Humidity => "Humidity",
-            SensorTypeEnum::LightLevel => "Light Level",
-        }
-        .to_string();
+        let sensor_type_str: &str = sensor.sensor_type.borrow();
 
         output.push(SensorState {
             id: sens_id,
-            sensor_type: sensor_type_str,
+            sensor_type: sensor_type_str.to_string(),
             last_val: measured_val,
         });
     }

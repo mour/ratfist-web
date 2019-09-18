@@ -1,6 +1,9 @@
 use rocket::Route;
 use rocket_contrib::json::Json;
 
+use std::error::Error;
+use std::fmt::Display;
+
 pub mod fetcher;
 mod immediate;
 mod messages;
@@ -10,6 +13,14 @@ mod stored;
 
 #[derive(Debug)]
 pub struct MeteoError;
+
+impl Display for MeteoError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        writeln!(fmt, "{:?}", Self)
+    }
+}
+
+impl Error for MeteoError {}
 
 type MeteoResponse<T> = Result<Json<T>, MeteoError>;
 
