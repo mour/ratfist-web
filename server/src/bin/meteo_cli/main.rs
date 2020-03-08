@@ -114,6 +114,7 @@ fn db_add_node(
     node_id: i32,
     node_name: &str,
     route_type: RouteTypes,
+    route_param_str: &str,
 ) -> Result<(), DieselError> {
     let route_type_str: &str = route_type.as_ref();
 
@@ -125,6 +126,7 @@ fn db_add_node(
                 public_id.eq(node_id),
                 name.eq(node_name),
                 route_type.eq(route_type_str),
+                route_param.eq(route_param_str),
             ))
             .execute(db_conn)
             .map(|_| ())
@@ -132,14 +134,27 @@ fn db_add_node(
 }
 
 /// Adds a new sensor node and handles the result of the DB operation.
-fn add_node(db_conn: &SqliteConnection, node_id: i32, node_name: &str, route_type: RouteTypes) {
-    match db_add_node(db_conn, node_id, node_name, route_type) {
+fn add_node(
+    db_conn: &SqliteConnection,
+    node_id: i32,
+    node_name: &str,
+    route_type: RouteTypes,
+    route_params: Option<&str>,
+) {
+    match db_add_node(
+        db_conn,
+        node_id,
+        node_name,
+        route_type,
+        route_params.unwrap_or(""),
+    ) {
         Ok(_) => {
             println!(
-                "Succesfully created new sensor node: public_id {}, name '{}', route type {}",
+                "Succesfully created new sensor node: public_id {}, name '{}', route type {}, route params {:?}",
                 node_id,
                 node_name,
-                route_type.as_ref()
+                route_type.as_ref(),
+                route_params
             );
         }
         Err(DieselError::DatabaseError(error_kind, error_details)) => {
@@ -294,6 +309,7 @@ fn main() {
                         Arg::with_name("route_type")
                             .required(true)
                             .possible_values(&RouteTypes::variants()),
+                        Arg::with_name("route_params"),
                     ]),
                     App::new("sensor").args(&[
                         Arg::with_name("node_public_id")
@@ -336,7 +352,21 @@ fn main() {
                     .expect("missing new node name");
                 let route_type = value_t_or_exit!(node_matches, "route_type", RouteTypes);
 
-                add_node(&db_conn, node_id, node_name, route_type);
+                let route_params = match route_type {
+                    RouteTypes::Serial => {
+                        let param_str =
+                            node_matches.value_of("route_params").unwrap_or_else(|| {
+                                panic!("route_params parameter is required with route_type Serial")
+                            });
+
+                        is_positive_integer_i32(param_str.to_string())
+                            .unwrap_or_else(|s| panic!("route_params validation error: {}", s));
+
+                        Some(param_str)
+                    }
+                };
+
+                add_node(&db_conn, node_id, node_name, route_type, route_params);
             }
             ("sensor", Some(sensor_matches)) => {
                 let node_id = value_t_or_exit!(sensor_matches, "node_public_id", i32);
