@@ -9,8 +9,9 @@ use std::ops::{Deref, DerefMut};
 pub trait Module {
     fn handle_incoming_msg(
         &mut self,
-        msg_writer: &mut MsgSender,
+        msg_writer: &mut dyn MsgSender,
         transaction_id: u32,
+        node_id: u32,
         msg_str: &str,
     ) -> Result<(), ()>;
 }
@@ -53,7 +54,7 @@ where
 
 pub struct Dispatcher<T: Write + Read> {
     comm: Comm<T>,
-    modules: HashMap<String, Box<Module>>,
+    modules: HashMap<String, Box<dyn Module>>,
 }
 
 impl<T> Dispatcher<T>
@@ -67,7 +68,7 @@ where
         }
     }
 
-    pub fn register_handler_module(&mut self, module_name: &str, module: Box<Module>) -> bool {
+    pub fn register_handler_module(&mut self, module_name: &str, module: Box<dyn Module>) -> bool {
         self.modules.insert(module_name.into(), module).is_some()
     }
 
@@ -79,7 +80,7 @@ where
             let mut recv_buf = [0; 100];
 
             if let Ok(incoming_len) = self.comm.read(&mut recv_buf) {
-                for byte in recv_buf.into_iter().take(incoming_len) {
+                for byte in recv_buf.iter().take(incoming_len) {
                     let ch = *byte as char;
 
                     match parser_state {
@@ -134,7 +135,7 @@ where
             return;
         }
 
-        let mut msg_parts = msg_str.splitn(3, ',');
+        let mut msg_parts = msg_str.splitn(4, ',');
 
         let transaction_id = match msg_parts
             .next()
@@ -144,6 +145,18 @@ where
             Ok(val) => val,
             Err(_) => {
                 warn!("Could not parse transaction ID from message: {}", msg_str);
+                return;
+            }
+        };
+
+        let node_id = match msg_parts
+            .next()
+            .ok_or(())
+            .and_then(|val| val.parse().map_err(|_| ()))
+        {
+            Ok(val) => val,
+            Err(_) => {
+                warn!("Could not parse node ID from message: {}", msg_str);
                 return;
             }
         };
@@ -166,7 +179,7 @@ where
 
         if let Some(handler) = self.modules.get_mut(module_name) {
             if handler
-                .handle_incoming_msg(&mut self.comm, transaction_id, msg_payload_str)
+                .handle_incoming_msg(&mut self.comm, transaction_id, node_id, msg_payload_str)
                 .is_err()
             {
                 warn!("Error while handling message: {}", msg_str);
@@ -213,5 +226,5 @@ where
 }
 
 fn calc_csum(msg_str: &str) -> u8 {
-    msg_str.as_bytes().into_iter().fold(0, |csum, ch| csum ^ ch)
+    msg_str.as_bytes().iter().fold(0, |csum, ch| csum ^ ch)
 }

@@ -15,7 +15,8 @@ use std::collections::HashMap;
 
 use std::time::Duration;
 
-use crate::comm;
+use crate::comm::serial::CommChannelTx;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
 struct SpinnerError;
@@ -174,10 +175,10 @@ pub struct PlanLeg {
 
 const NUM_CHANNELS: u8 = 1;
 
-fn send_msg(msg_str: String, comm: &comm::CommChannelTx) -> Result<String, SpinnerError> {
+fn send_msg(msg_str: String, comm: &Arc<Mutex<CommChannelTx>>) -> Result<String, SpinnerError> {
     debug!("Sending: {}", msg_str);
 
-    let response_channel = comm.send(msg_str).map_err(|e| {
+    let response_channel = comm.lock().unwrap().send(0, msg_str).map_err(|e| {
         warn!("{}", e);
         SpinnerError
     })?;
@@ -196,7 +197,7 @@ fn send_msg(msg_str: String, comm: &comm::CommChannelTx) -> Result<String, Spinn
 
 fn send_channel_state_query_msg(
     id: u8,
-    comm: &comm::CommChannelTx,
+    comm: &Arc<Mutex<CommChannelTx>>,
 ) -> Result<ChannelState, SpinnerError> {
     let response_str = send_msg(OutgoingMessage::GetState(id).into(), comm)?;
 
@@ -208,7 +209,7 @@ fn send_channel_state_query_msg(
 
 fn send_channel_plan_query_msg(
     id: u8,
-    comm: &comm::CommChannelTx,
+    comm: &Arc<Mutex<CommChannelTx>>,
 ) -> Result<Vec<PlanLeg>, SpinnerError> {
     let response_str = send_msg(OutgoingMessage::GetPlan(id).into(), comm)?;
 
@@ -220,18 +221,16 @@ fn send_channel_plan_query_msg(
 
 #[get("/channels")]
 fn query_channels(
-    comm_state: State<'_, comm::CommState>,
+    comm_state: State<Arc<Mutex<CommChannelTx>>>,
 ) -> SpinnerResponse<HashMap<u8, (ChannelState, Vec<PlanLeg>)>> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
-
     let mut map = HashMap::new();
 
     for ch_num in 0..NUM_CHANNELS {
         map.insert(
             ch_num,
             (
-                send_channel_state_query_msg(ch_num, &comm)?,
-                send_channel_plan_query_msg(ch_num, &comm)?,
+                send_channel_state_query_msg(ch_num, &*comm_state)?,
+                send_channel_plan_query_msg(ch_num, &*comm_state)?,
             ),
         );
     }
@@ -242,24 +241,20 @@ fn query_channels(
 #[get("/channels/<id>")]
 fn query_channel(
     id: u8,
-    comm_state: State<'_, comm::CommState>,
+    comm_state: State<Arc<Mutex<CommChannelTx>>>,
 ) -> SpinnerResponse<(ChannelState, Vec<PlanLeg>)> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
-
     Ok(Json((
-        send_channel_state_query_msg(id, &comm)?,
-        send_channel_plan_query_msg(id, &comm)?,
+        send_channel_state_query_msg(id, &*comm_state)?,
+        send_channel_plan_query_msg(id, &*comm_state)?,
     )))
 }
 
 #[get("/channels/<id>/state")]
 fn query_channel_state(
     id: u8,
-    comm_state: State<'_, comm::CommState>,
+    comm_state: State<Arc<Mutex<CommChannelTx>>>,
 ) -> SpinnerResponse<ChannelState> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
-
-    match send_channel_state_query_msg(id, &comm) {
+    match send_channel_state_query_msg(id, &*comm_state) {
         Ok(state) => Ok(Json(state)),
         Err(_) => Err(SpinnerError),
     }
@@ -273,13 +268,11 @@ fn query_channel_state(
 fn set_channel_state<'a>(
     id: u8,
     new_state: Json<ChannelCommand>,
-    comm_state: State<'_, comm::CommState>,
+    comm_state: State<Arc<Mutex<CommChannelTx>>>,
 ) -> Result<Response<'a>, SpinnerError> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
-
     let response_str = send_msg(
         OutgoingMessage::SetState(id, new_state.into_inner()).into(),
-        &comm,
+        &*comm_state,
     )?;
 
     match response_str.parse() {
@@ -295,10 +288,11 @@ fn set_channel_state<'a>(
 }
 
 #[get("/channels/<id>/plan")]
-fn query_plan(id: u8, comm_state: State<'_, comm::CommState>) -> SpinnerResponse<Vec<PlanLeg>> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
-
-    match send_channel_plan_query_msg(id, &comm) {
+fn query_plan(
+    id: u8,
+    comm_state: State<Arc<Mutex<CommChannelTx>>>,
+) -> SpinnerResponse<Vec<PlanLeg>> {
+    match send_channel_plan_query_msg(id, &*comm_state) {
         Ok(plan) => Ok(Json(plan)),
         Err(_) => Err(SpinnerError),
     }
@@ -312,13 +306,11 @@ fn query_plan(id: u8, comm_state: State<'_, comm::CommState>) -> SpinnerResponse
 fn set_plan<'a>(
     id: u8,
     new_plan: Json<Vec<PlanLeg>>,
-    comm_state: State<'_, comm::CommState>,
+    comm_state: State<Arc<Mutex<CommChannelTx>>>,
 ) -> Result<Response<'a>, SpinnerError> {
-    let comm = comm_state.get_comm_channel(0).map_err(|_| SpinnerError)?;
-
     let response_str = send_msg(
         OutgoingMessage::SetPlan(id, new_plan.into_inner()).into(),
-        &comm,
+        &*comm_state,
     )?;
 
     match response_str.parse() {

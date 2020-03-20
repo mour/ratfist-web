@@ -1,5 +1,5 @@
-use dispatcher::Module;
-use dispatcher::MsgSender;
+use crate::dispatcher::Module;
+use crate::dispatcher::MsgSender;
 
 use rand::distributions::Normal;
 use rand::prelude::*;
@@ -60,8 +60,9 @@ impl MeteoModule {
 impl Module for MeteoModule {
     fn handle_incoming_msg(
         &mut self,
-        msg_writer: &mut MsgSender,
+        msg_writer: &mut dyn MsgSender,
         transaction_id: u32,
+        _node_id: u32,
         msg_str: &str,
     ) -> Result<(), ()> {
         debug!("Handling message: {} {}", transaction_id, msg_str);

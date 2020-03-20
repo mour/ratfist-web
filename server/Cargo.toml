@@ -26,6 +26,7 @@ chrono = { version = "0.4", features = ["serde"] }
 scheduled-executor = "0.4"
 prettytable-rs = { version = "^0.8", optional = true }
 clap = { version = "2", optional = true }
+lazy_static = "1"
 
 [features]
 spinner = []

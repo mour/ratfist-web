@@ -7,6 +7,7 @@ use rocket::http::Status;
 use rocket::request::{self, FromRequest, Request};
 use rocket::{Outcome, State};
 
+use std::convert::Into;
 use std::ops::Deref;
 
 pub mod models;
@@ -35,6 +36,12 @@ impl Deref for Db {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl Into<Db> for DbPooledConn {
+    fn into(self) -> Db {
+        Db(self)
     }
 }
 

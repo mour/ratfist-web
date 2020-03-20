@@ -6,12 +6,13 @@ use scheduled_executor;
 use std::time::Duration;
 
 #[cfg(feature = "spinner")]
+use ratfist_server::comm;
+#[cfg(feature = "spinner")]
 use ratfist_server::spinner;
 
 #[cfg(feature = "meteo")]
 use ratfist_server::meteo;
 
-use ratfist_server::comm;
 use ratfist_server::db;
 
 fn main() {
@@ -31,11 +32,13 @@ fn main() {
     let db_pool = db::init_pool();
     let rocket = rocket.manage(db_pool.clone());
 
-    let (comm, _join_handle) = comm::init(&db_pool);
-    let rocket = rocket.manage(comm.clone());
-
     #[cfg(feature = "spinner")]
-    let rocket = rocket.mount("/spinner", spinner::get_routes());
+    let rocket = {
+        let wrapped_comm_ch = comm::get_serial_comm_path(0);
+        rocket
+            .manage(wrapped_comm_ch)
+            .mount("/spinner", spinner::get_routes())
+    };
 
     #[cfg(feature = "meteo")]
     let executor =
@@ -43,25 +46,30 @@ fn main() {
 
     #[cfg(feature = "meteo")]
     let rocket = {
-        let db_pool_clone = db_pool.clone();
-        let comm_clone = comm.clone();
+        let node_registry = meteo::node::SensorNodeRegistry::new(
+            db_pool.get().expect("Could not get DB connection.").into(),
+        );
 
         let fetcher_task_rate = dotenv::var("METEO_FETCHER_TASK_RATE_SECS")
             .expect("missing METEO_FETCHER_TASK_RATE_SECS env variable")
             .parse()
             .expect("METEO_FETCHER_TASK_RATE_SECS parsing error");
 
+        let node_registry_clone = node_registry.clone();
+
         executor.schedule_fixed_rate(
             Duration::from_secs(fetcher_task_rate),
             Duration::from_secs(fetcher_task_rate),
             move |_remote| {
-                if meteo::fetcher::fetcher_iteration(&db_pool_clone, &comm_clone).is_err() {
+                if meteo::fetcher::fetcher_iteration(&db_pool, &node_registry_clone).is_err() {
                     warn!("Fetcher task error.");
                 }
             },
         );
 
-        rocket.mount("/meteo", meteo::get_routes())
+        rocket
+            .manage(node_registry)
+            .mount("/meteo", meteo::get_routes())
     };
 
     rocket.launch();
