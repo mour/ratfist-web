@@ -1,4 +1,4 @@
 # Ratfist dotenv sample file
 METEO_FETCHER_TASK_RATE_SECS=60
 DATABASE_URL=<path_to_sqlite_db>
-SERIAL_PORT_PATH_<x>=<path_to_serial_port_devfile>
+SERIAL_PORT_<x>_PATH=<path_to_serial_port_devfile>

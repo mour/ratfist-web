@@ -10,6 +10,7 @@ use super::MeteoError;
 
 use diesel::prelude::*;
 
+mod enviro_phat;
 mod serial_node;
 
 pub trait SensorNode: Sync + Send {
@@ -36,7 +37,7 @@ impl SensorNodeRegistry {
         for node in nodes {
             let public_id = node.public_id.try_into().unwrap();
 
-            let sensor_node = match node.route_type.as_str() {
+            let sensor_node: Arc<dyn SensorNode> = match node.route_type.as_str() {
                 "serial" => {
                     let route_param_str = node.route_param.unwrap_or_else(|| {
                         panic!("Missing route param info for node ID {}", public_id)
@@ -49,7 +50,21 @@ impl SensorNodeRegistry {
                         )
                     });
 
-                    serial_node::SerialNode::new(public_id, comm_path_id)
+                    Arc::new(serial_node::SerialNode::new(public_id, comm_path_id))
+                }
+                "enviro_phat" => {
+                    let route_param_str = node.route_param.unwrap_or_else(|| {
+                        panic!("Missing route param info for node ID {}", public_id)
+                    });
+
+                    let comm_path_id = route_param_str.parse::<u32>().unwrap_or_else(|_| {
+                        panic!(
+                            "Invalid route param '{}' for node ID {}.",
+                            route_param_str, public_id
+                        )
+                    });
+
+                    Arc::new(enviro_phat::EnviroPHat::new(comm_path_id))
                 }
                 route_type => panic!(
                     "Invalid route type '{}' for node ID {}.",
@@ -57,7 +72,7 @@ impl SensorNodeRegistry {
                 ),
             };
 
-            node_map.insert(public_id, Arc::new(sensor_node));
+            node_map.insert(public_id, sensor_node);
         }
 
         SensorNodeRegistry {
