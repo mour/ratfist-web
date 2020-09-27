@@ -3,8 +3,6 @@ use diesel::prelude::*;
 use diesel::result::Error as DieselError;
 use diesel::sqlite::SqliteConnection;
 
-use dotenv;
-
 use clap::{arg_enum, crate_version, value_t_or_exit, App, AppSettings, Arg};
 
 use prettytable as pt;
@@ -240,7 +238,8 @@ fn add_sensor(
 arg_enum! {
     #[derive(Debug, Clone, Copy)]
     enum RouteTypes {
-        Serial
+        Serial,
+        EnviroPHat
     }
 }
 
@@ -248,6 +247,7 @@ impl AsRef<str> for RouteTypes {
     fn as_ref(&self) -> &'static str {
         match &self {
             RouteTypes::Serial => "serial",
+            RouteTypes::EnviroPHat => "envirophat",
         }
     }
 }
@@ -353,7 +353,7 @@ fn main() {
                 let route_type = value_t_or_exit!(node_matches, "route_type", RouteTypes);
 
                 let route_params = match route_type {
-                    RouteTypes::Serial => {
+                    RouteTypes::Serial | RouteTypes::EnviroPHat => {
                         let param_str =
                             node_matches.value_of("route_params").unwrap_or_else(|| {
                                 panic!("route_params parameter is required with route_type Serial")

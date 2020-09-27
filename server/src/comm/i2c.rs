@@ -1,8 +1,21 @@
-use i2cdev::core::*;
-use i2cdev::linux::{LinuxI2CBus, LinuxI2CMessage};
+use i2cdev::linux::LinuxI2CBus;
 
-pub struct CommChannel {
-    bus: LinuxI2CBus,
+use std::ops::{Deref, DerefMut};
+
+pub struct CommChannel(LinuxI2CBus);
+
+impl Deref for CommChannel {
+    type Target = LinuxI2CBus;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for CommChannel {
+    fn deref_mut(&mut self) -> &mut LinuxI2CBus {
+        &mut self.0
+    }
 }
 
 impl CommChannel {
@@ -15,12 +28,6 @@ impl CommChannel {
         )
         .expect("could not open I2C bus");
 
-        CommChannel { bus }
-    }
-
-    pub fn transfer(&mut self, messages: &mut [LinuxI2CMessage]) -> Result<(), ()> {
-        self.bus.transfer(messages).map_err(|_| ())?;
-
-        Ok(())
+        CommChannel(bus)
     }
 }

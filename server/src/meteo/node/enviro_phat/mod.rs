@@ -17,13 +17,14 @@ pub struct EnviroPHat {
 impl EnviroPHat {
     pub fn new(i2c_comm_path_id: u32) -> EnviroPHat {
         let comm_path = comm::get_i2c_comm_path(i2c_comm_path_id);
+
         let bmp = bmp280::Bmp280::new(
-            comm_path.clone(),
-            StandbyTime::Time4000ms,
-            IIRCoeficient::Off,
+            comm_path,
+            StandbyTime::Time1000ms,
+            IIRCoeficient::Mult4X,
             Oversampling::Mult16X,
             Oversampling::Mult2X,
-            Mode::Forced,
+            Mode::Normal,
         )
         .unwrap();
 

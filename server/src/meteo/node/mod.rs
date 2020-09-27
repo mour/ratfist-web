@@ -52,7 +52,7 @@ impl SensorNodeRegistry {
 
                     Arc::new(serial_node::SerialNode::new(public_id, comm_path_id))
                 }
-                "enviro_phat" => {
+                "envirophat" => {
                     let route_param_str = node.route_param.unwrap_or_else(|| {
                         panic!("Missing route param info for node ID {}", public_id)
                     });

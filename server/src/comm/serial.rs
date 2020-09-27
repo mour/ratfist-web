@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use serial;
 use serial::prelude::*;
 
 use std::thread;
@@ -11,8 +10,6 @@ use std::sync::mpsc::{Receiver, SendError, Sender};
 use std::io::{Read, Write};
 
 use log::{debug, warn};
-
-use dotenv;
 
 type MsgAndResponseChannel = (u32, String, Sender<String>);
 

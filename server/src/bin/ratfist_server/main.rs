@@ -1,6 +1,4 @@
-use dotenv;
 use log::{debug, trace, warn};
-use scheduled_executor;
 
 #[cfg(feature = "meteo")]
 use std::time::Duration;
