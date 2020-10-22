@@ -11,7 +11,7 @@ pub mod node;
 pub mod schema;
 mod stored;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct MeteoError;
 
 impl Display for MeteoError {

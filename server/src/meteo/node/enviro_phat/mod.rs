@@ -10,8 +10,11 @@ mod tcs3472;
 
 use bmp280::{Bmp280, IIRCoeficient, Mode, Oversampling, StandbyTime};
 
+use tcs3472::Tcs3472;
+
 pub struct EnviroPHat {
     bmp: Bmp280,
+    tcs: Tcs3472
 }
 
 impl EnviroPHat {
@@ -19,7 +22,7 @@ impl EnviroPHat {
         let comm_path = comm::get_i2c_comm_path(i2c_comm_path_id);
 
         let bmp = bmp280::Bmp280::new(
-            comm_path,
+            comm_path.clone(),
             StandbyTime::Time1000ms,
             IIRCoeficient::Mult4X,
             Oversampling::Mult16X,
@@ -28,7 +31,12 @@ impl EnviroPHat {
         )
         .unwrap();
 
-        EnviroPHat { bmp }
+        let tcs = tcs3472::Tcs3472::new(comm_path).unwrap();
+
+        EnviroPHat {
+            bmp,
+            tcs
+        }
     }
 }
 
@@ -42,7 +50,7 @@ impl SensorNode for EnviroPHat {
             SensorTypeEnum::Pressure => Ok(self.bmp.query_press_and_temp()?.0),
             SensorTypeEnum::Temperature => Ok(self.bmp.query_press_and_temp()?.1),
             SensorTypeEnum::Humidity => Err(MeteoError),
-            SensorTypeEnum::LightLevel => Err(MeteoError),
+            SensorTypeEnum::LightLevel => Ok(self.tcs.query_light_level()?),
         }
     }
 }
