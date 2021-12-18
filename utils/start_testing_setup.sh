@@ -46,7 +46,7 @@ check_retval
 echo "BUILDING SERVER APP"
 cd "${script_dir}/../server"
 check_retval
-cargo build --release --features spinner,meteo --bin ratfist_server
+cargo build --release --features meteo --bin ratfist_server
 check_retval
 
 cd $my_dir
