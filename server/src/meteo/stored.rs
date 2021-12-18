@@ -1,4 +1,4 @@
-use rocket_contrib::json::Json;
+use rocket::serde::json::Json;
 
 use crate::meteo::models::{Measurement, Sensor, SensorTypeEnum};
 use crate::meteo::{MeteoError, MeteoResponse};

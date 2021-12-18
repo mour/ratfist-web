@@ -9,9 +9,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
 
-#[cfg(feature = "spinner")]
-pub mod spinner;
-
 #[cfg(feature = "meteo")]
 pub mod meteo;
 

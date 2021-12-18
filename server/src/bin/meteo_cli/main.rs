@@ -230,7 +230,7 @@ fn add_sensor(
             println!("Error details: {:?}", error_details);
         }
         Err(other_err) => {
-            panic!(other_err);
+            std::panic::panic_any(other_err);
         }
     }
 }

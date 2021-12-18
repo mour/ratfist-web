@@ -1,4 +1,3 @@
-use rocket::http::RawStr;
 use rocket::request::FromParam;
 
 use diesel::backend::Backend;
@@ -97,10 +96,10 @@ where
     }
 }
 
-impl<'req> FromParam<'req> for SensorTypeEnum {
+impl<'a> FromParam<'a> for SensorTypeEnum {
     type Error = MeteoError;
 
-    fn from_param(param: &'req RawStr) -> Result<Self, Self::Error> {
-        SensorTypeEnum::try_from(param.as_str())
+    fn from_param(param: &'a str) -> Result<Self, Self::Error> {
+        SensorTypeEnum::try_from(param)
     }
 }

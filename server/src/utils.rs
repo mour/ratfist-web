@@ -3,8 +3,7 @@ use std::collections::HashSet;
 
 use chrono::prelude::*;
 
-use rocket::http::RawStr;
-use rocket::request::FromFormValue;
+use rocket::form::{self, FromFormField, ValueField};
 use rocket::request::FromParam;
 
 use std::ops::Deref;
@@ -20,10 +19,10 @@ use std::io::Write;
 #[derive(Debug, Clone)]
 pub struct IdRange(HashSet<u32>);
 
-impl<'req> FromParam<'req> for IdRange {
+impl<'a> FromParam<'a> for IdRange {
     type Error = ();
 
-    fn from_param(param: &'req RawStr) -> Result<Self, Self::Error> {
+    fn from_param(param: &'a str) -> Result<Self, Self::Error> {
         let term_regex = Regex::new("(?P<from>[0-9]+)(?::(?P<to>[0-9]+))?").expect("invalid regex");
 
         let mut range = IdRange(HashSet::new());
@@ -115,14 +114,11 @@ pub struct TimeRangeOptionalEndTime {
     pub to: Option<DateTimeUtc>,
 }
 
-impl<'v> FromFormValue<'v> for DateTimeUtc {
-    type Error = &'v RawStr;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<DateTimeUtc, &'v RawStr> {
-        Ok(DateTimeUtc(
-            form_value
-                .parse::<DateTime<Utc>>()
-                .map_err(|_| form_value)?,
-        ))
+#[rocket::async_trait]
+impl<'r> FromFormField<'r> for DateTimeUtc {
+    fn from_value(field: ValueField<'r>) -> form::Result<'r, Self> {
+        Ok(DateTimeUtc(field.value.parse::<DateTime<Utc>>().map_err(
+            |_| form::Error::validation("Invalid datetime format."),
+        )?))
     }
 }

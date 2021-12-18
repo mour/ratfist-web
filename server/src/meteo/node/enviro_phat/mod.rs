@@ -14,7 +14,7 @@ use tcs3472::Tcs3472;
 
 pub struct EnviroPHat {
     bmp: Bmp280,
-    tcs: Tcs3472
+    tcs: Tcs3472,
 }
 
 impl EnviroPHat {
@@ -33,10 +33,7 @@ impl EnviroPHat {
 
         let tcs = tcs3472::Tcs3472::new(comm_path).unwrap();
 
-        EnviroPHat {
-            bmp,
-            tcs
-        }
+        EnviroPHat { bmp, tcs }
     }
 }
 

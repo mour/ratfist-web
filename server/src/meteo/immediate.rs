@@ -1,13 +1,12 @@
+use rocket::serde::json::Json;
 use rocket::State;
-use rocket_contrib::json::Json;
-
-use super::MeteoResponse;
 
 use super::models::SensorTypeEnum;
 use super::node::SensorNodeRegistry;
 
 use crate::utils::IdRange;
 
+use crate::meteo::MeteoError;
 use std::collections::HashMap;
 
 #[get("/<node_id>/<sensor_type>/<sensor_ids>", format = "application/json")]
@@ -15,8 +14,8 @@ pub fn query_current_values(
     node_id: u32,
     sensor_type: SensorTypeEnum,
     sensor_ids: IdRange,
-    node_registry: State<SensorNodeRegistry>,
-) -> MeteoResponse<HashMap<u32, f32>> {
+    node_registry: &State<SensorNodeRegistry>,
+) -> Result<Json<HashMap<u32, f32>>, MeteoError> {
     let mut response_map = HashMap::new();
 
     for sensor_id in sensor_ids.iter() {

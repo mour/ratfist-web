@@ -3,7 +3,7 @@ use diesel::sqlite::SqliteConnection;
 
 use rocket::http::Status;
 use rocket::request::{self, FromRequest, Request};
-use rocket::{Outcome, State};
+use rocket::State;
 
 use std::convert::Into;
 use std::ops::Deref;
@@ -16,16 +16,18 @@ type DbPooledConn = PooledConnection<ConnectionManager<SqliteConnection>>;
 
 pub struct Db(DbPooledConn);
 
-impl<'a, 'r> FromRequest<'a, 'r> for Db {
+#[rocket::async_trait]
+impl<'a> FromRequest<'a> for Db {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        let pool = request.guard::<State<'_, DbConnPool>>()?;
-
-        match pool.get() {
-            Ok(conn) => Outcome::Success(Db(conn)),
-            Err(_) => Outcome::Failure((Status::InternalServerError, ())),
-        }
+    async fn from_request(request: &'a Request<'_>) -> request::Outcome<Self, Self::Error> {
+        request
+            .guard::<&State<DbConnPool>>()
+            .await
+            .and_then(|pool| match pool.get() {
+                Ok(db_conn) => request::Outcome::Success(Db(db_conn)),
+                _ => request::Outcome::Failure((Status::InternalServerError, ())),
+            })
     }
 }
 

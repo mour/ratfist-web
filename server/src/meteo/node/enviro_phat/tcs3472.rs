@@ -19,7 +19,7 @@ pub enum Gain {
 }
 
 pub struct Tcs3472 {
-    comm_path: Arc<Mutex<i2c::CommChannel>>
+    comm_path: Arc<Mutex<i2c::CommChannel>>,
 }
 
 impl Tcs3472 {
@@ -32,7 +32,9 @@ impl Tcs3472 {
     const ENABLE_REG_AEN: u8 = 0x02;
     const ENABLE_REG_PON: u8 = 0x01;
 
+    #[allow(dead_code)]
     const TIMING_REG_ADDR: u8 = 0x01;
+    #[allow(dead_code)]
     const TIMING_REG_STEP_MS: f32 = 2.4;
 
     const CONTROL_REG_ADDR: u8 = 0x0f;
@@ -47,7 +49,8 @@ impl Tcs3472 {
         // Check we have the correct sensor
         let mut id_data = [0];
         let mut id_msgs = [
-            LinuxI2CMessage::write(&[Self::CMD_REG_MASK | Self::CHIP_ID_REG_ADDR]).with_address(Self::I2C_ADDR),
+            LinuxI2CMessage::write(&[Self::CMD_REG_MASK | Self::CHIP_ID_REG_ADDR])
+                .with_address(Self::I2C_ADDR),
             LinuxI2CMessage::read(&mut id_data).with_address(Self::I2C_ADDR),
         ];
 
@@ -67,7 +70,7 @@ impl Tcs3472 {
         debug!("Configuring TCS3472.");
         // Configure the sensor
         // Continuous integration at 1x Gain, 64 periods per integration (total time 154ms)
-        let cmd_reg_enable_autoinc = Self::CMD_REG_MASK | Self::CMD_REG_AUTOINCREMENT;
+        let cmd_reg_enable_autoinc = Self::CMD_REG_MASK | Self::CMD_REG_AUTOINCREMENT | Self::ENABLE_REG_ADDR;
         let enable_reg = Self::ENABLE_REG_AEN | Self::ENABLE_REG_PON;
 
         let period_count = 64;
@@ -77,8 +80,9 @@ impl Tcs3472 {
         let control_reg = Gain::Mult1X as u8;
 
         let mut config_msgs = [
-            LinuxI2CMessage::write(&[cmd_reg_enable_autoinc, enable_reg, timing_reg]).with_address(Self::I2C_ADDR),
-            LinuxI2CMessage::write(&[cmd_reg_control, control_reg]).with_address(Self::I2C_ADDR)
+            LinuxI2CMessage::write(&[cmd_reg_enable_autoinc, enable_reg, timing_reg])
+                .with_address(Self::I2C_ADDR),
+            LinuxI2CMessage::write(&[cmd_reg_control, control_reg]).with_address(Self::I2C_ADDR),
         ];
 
         comm_path
@@ -87,21 +91,18 @@ impl Tcs3472 {
             .transfer(&mut config_msgs)
             .map_err(|_| MeteoError)?;
 
-        Ok(Tcs3472 {
-            comm_path
-        })
+        Ok(Tcs3472 { comm_path })
     }
 
     pub fn query_light_level(&self) -> Result<f32, MeteoError> {
-        let cmd_reg_read_color_autoinc = Self::CMD_REG_MASK |
-                                         Self::CMD_REG_AUTOINCREMENT |
-                                         Self::CLEAR_DATA_REG_ADDR;
+        let cmd_reg_read_color_autoinc =
+            Self::CMD_REG_MASK | Self::CMD_REG_AUTOINCREMENT | Self::CLEAR_DATA_REG_ADDR;
 
         let mut read_data_buf = [0; Self::CLEAR_DATA_REG_SIZE];
 
         let mut read_data_msgs = [
             LinuxI2CMessage::write(&[cmd_reg_read_color_autoinc]).with_address(Self::I2C_ADDR),
-            LinuxI2CMessage::read(&mut read_data_buf).with_address(Self::I2C_ADDR)
+            LinuxI2CMessage::read(&mut read_data_buf).with_address(Self::I2C_ADDR),
         ];
 
         self.comm_path

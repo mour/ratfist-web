@@ -3,20 +3,16 @@ use log::{debug, trace, warn};
 #[cfg(feature = "meteo")]
 use std::time::Duration;
 
-#[cfg(feature = "spinner")]
-use ratfist_server::comm;
-#[cfg(feature = "spinner")]
-use ratfist_server::spinner;
-
 #[cfg(feature = "meteo")]
 use ratfist_server::meteo;
 
 use ratfist_server::db;
 
-fn main() {
+#[rocket::main]
+async fn main() {
     let path = dotenv::dotenv().ok();
 
-    let rocket = rocket::ignite();
+    let rocket = rocket::build();
 
     // Rocket initialized above to enable logging.
     debug!("Loaded .env from: {:?}.", path);
@@ -29,14 +25,6 @@ fn main() {
 
     let db_pool = db::init_pool();
     let rocket = rocket.manage(db_pool.clone());
-
-    #[cfg(feature = "spinner")]
-    let rocket = {
-        let wrapped_comm_ch = comm::get_serial_comm_path(0);
-        rocket
-            .manage(wrapped_comm_ch)
-            .mount("/spinner", spinner::get_routes())
-    };
 
     #[cfg(feature = "meteo")]
     let executor =
@@ -70,5 +58,5 @@ fn main() {
             .mount("/meteo", meteo::get_routes())
     };
 
-    rocket.launch();
+    rocket.launch().await.expect("Failed to launch server.");
 }

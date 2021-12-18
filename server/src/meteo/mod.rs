@@ -1,5 +1,8 @@
+use rocket::serde::json::Json;
 use rocket::Route;
-use rocket_contrib::json::Json;
+
+use rocket::request::Request;
+use rocket::response::{self, Responder, Response};
 
 use std::error::Error;
 use std::fmt::Display;
@@ -13,6 +16,12 @@ mod stored;
 
 #[derive(Debug, Clone, Copy)]
 pub struct MeteoError;
+
+impl<'r> Responder<'r, 'static> for MeteoError {
+    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
+        Ok(Response::new())
+    }
+}
 
 impl Display for MeteoError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
