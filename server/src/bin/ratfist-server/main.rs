@@ -1,3 +1,4 @@
+
 use log::{debug, trace, warn};
 
 #[cfg(feature = "meteo")]
@@ -6,7 +7,7 @@ use std::time::Duration;
 #[cfg(feature = "meteo")]
 use ratfist_server::meteo;
 
-use ratfist_server::db;
+use ratfist_server::{run_migrations, db};
 
 #[rocket::main]
 async fn main() {
@@ -24,6 +25,9 @@ async fn main() {
     }
 
     let db_pool = db::init_pool();
+    let connection = db_pool.get().expect("Could not get DB connection.");
+    run_migrations(&connection);
+
     let rocket = rocket.manage(db_pool.clone());
 
     #[cfg(feature = "meteo")]
@@ -33,7 +37,7 @@ async fn main() {
     #[cfg(feature = "meteo")]
     let rocket = {
         let node_registry = meteo::node::SensorNodeRegistry::new(
-            db_pool.get().expect("Could not get DB connection.").into(),
+            connection.into(),
         );
 
         let fetcher_task_rate = dotenv::var("METEO_FETCHER_TASK_RATE_SECS")

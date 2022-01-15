@@ -8,6 +8,7 @@ use clap::{arg_enum, crate_version, value_t_or_exit, App, AppSettings, Arg};
 use prettytable as pt;
 use pt::{cell, row};
 
+use ratfist_server::run_migrations;
 use ratfist_server::db::models::Node;
 use ratfist_server::meteo::models::{Sensor, SensorTypeEnum};
 
@@ -333,6 +334,8 @@ fn main() {
 
     let db_conn = SqliteConnection::establish(&db_url)
         .unwrap_or_else(|_| panic!("failed to connect to DB: {}", db_url));
+
+    run_migrations(&db_conn);
 
     match matches.subcommand() {
         ("list", Some(list_matches)) => match list_matches.subcommand() {

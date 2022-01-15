@@ -24,6 +24,7 @@ serial = "0.4"
 regex = "1"
 dotenv = "0.14"
 diesel = { version = "1", features = ["sqlite", "r2d2", "chrono"] }
+diesel_migrations = "1"
 chrono = { version = "0.4", features = ["serde"] }
 scheduled-executor = "0.4"
 prettytable-rs = { version = "^0.8", optional = true }
