@@ -4,7 +4,8 @@ use i2cdev::linux::LinuxI2CMessage;
 use std::sync::{Arc, Mutex};
 
 use crate::comm::i2c;
-use crate::meteo::MeteoError;
+
+use anyhow::{anyhow, Result};
 
 use log::debug;
 
@@ -40,12 +41,12 @@ impl Tcs3472 {
     const CONTROL_REG_ADDR: u8 = 0x0f;
 
     const CHIP_ID_REG_ADDR: u8 = 0x12;
-    const CHIP_ID_EXPECTED: u8 = 0x44; // 0x4d
+    const CHIP_ID_EXPECTED: u8 = 0x4d; //4; // 0x4d
 
     const CLEAR_DATA_REG_ADDR: u8 = 0x14;
     const CLEAR_DATA_REG_SIZE: usize = 2;
 
-    pub fn new(comm_path: Arc<Mutex<i2c::CommChannel>>) -> Result<Tcs3472, MeteoError> {
+    pub fn new(comm_path: Arc<Mutex<i2c::CommChannel>>) -> Result<Tcs3472> {
         // Check we have the correct sensor
         let mut id_data = [0];
         let mut id_msgs = [
@@ -57,20 +58,24 @@ impl Tcs3472 {
         debug!("Reading out chip ID");
         comm_path
             .lock()
-            .map_err(|_| MeteoError)?
-            .transfer(&mut id_msgs)
-            .map_err(|_| MeteoError)?;
+            .expect("Mutex poisoned.")
+            .transfer(&mut id_msgs)?;
 
         debug!("Chip ID is {}", id_data[0]);
 
         if id_data[0] != Self::CHIP_ID_EXPECTED {
-            return Err(MeteoError);
+            return Err(anyhow!(
+                "TCS3472 unexpected chip ID (0x{:X}) at address 0x{:X}",
+                id_data[0],
+                Self::CHIP_ID_REG_ADDR
+            ));
         }
 
         debug!("Configuring TCS3472.");
         // Configure the sensor
         // Continuous integration at 1x Gain, 64 periods per integration (total time 154ms)
-        let cmd_reg_enable_autoinc = Self::CMD_REG_MASK | Self::CMD_REG_AUTOINCREMENT | Self::ENABLE_REG_ADDR;
+        let cmd_reg_enable_autoinc =
+            Self::CMD_REG_MASK | Self::CMD_REG_AUTOINCREMENT | Self::ENABLE_REG_ADDR;
         let enable_reg = Self::ENABLE_REG_AEN | Self::ENABLE_REG_PON;
 
         let period_count = 64;
@@ -87,14 +92,13 @@ impl Tcs3472 {
 
         comm_path
             .lock()
-            .map_err(|_| MeteoError)?
-            .transfer(&mut config_msgs)
-            .map_err(|_| MeteoError)?;
+            .expect("Mutex poisoned.")
+            .transfer(&mut config_msgs)?;
 
         Ok(Tcs3472 { comm_path })
     }
 
-    pub fn query_light_level(&self) -> Result<f32, MeteoError> {
+    pub fn query_light_level(&self) -> Result<f32> {
         let cmd_reg_read_color_autoinc =
             Self::CMD_REG_MASK | Self::CMD_REG_AUTOINCREMENT | Self::CLEAR_DATA_REG_ADDR;
 
@@ -107,9 +111,8 @@ impl Tcs3472 {
 
         self.comm_path
             .lock()
-            .map_err(|_| MeteoError)?
-            .transfer(&mut read_data_msgs)
-            .map_err(|_| MeteoError)?;
+            .expect("Mutex poisoned.")
+            .transfer(&mut read_data_msgs)?;
 
         let raw_val: u16 = ((read_data_buf[1] as u16) << 8) | (read_data_buf[0] as u16);
 

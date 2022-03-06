@@ -14,27 +14,42 @@ use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::BigInt;
 use diesel::sqlite::Sqlite;
 
+use rocket::request::Request;
+use rocket::response::{self, Responder, Response};
+
 use std::io::Write;
+
+use anyhow::anyhow;
 
 #[derive(Debug, Clone)]
 pub struct IdRange(HashSet<u32>);
 
 impl<'a> FromParam<'a> for IdRange {
-    type Error = ();
+    type Error = self::Error;
 
-    fn from_param(param: &'a str) -> Result<Self, Self::Error> {
+    fn from_param(param: &'a str) -> std::result::Result<Self, Self::Error> {
         let term_regex = Regex::new("(?P<from>[0-9]+)(?::(?P<to>[0-9]+))?").expect("invalid regex");
 
         let mut range = IdRange(HashSet::new());
 
         for term in param.split(',') {
-            let caps = term_regex.captures(term).ok_or(())?;
+            let caps = term_regex
+                .captures(term)
+                .ok_or_else(|| anyhow!("IdRange parsing error."))?;
 
-            let from_str = caps.name("from").ok_or(())?.as_str();
-            let from = from_str.parse().map_err(|_| ())?;
+            let from_str = caps
+                .name("from")
+                .ok_or_else(|| anyhow!("IdRange parsing error."))?
+                .as_str();
+            let from = from_str
+                .parse()
+                .map_err(|e| anyhow!("IdRange parsing error. {e:?}"))?;
 
             if let Some(to_match) = caps.name("to") {
-                let to = to_match.as_str().parse().map_err(|_| ())?;
+                let to = to_match
+                    .as_str()
+                    .parse()
+                    .map_err(|e| anyhow!("IdRange parsing error. {e:?}"))?;
 
                 let (from, to) = if from <= to { (from, to) } else { (to, from) };
 
@@ -122,3 +137,28 @@ impl<'r> FromFormField<'r> for DateTimeUtc {
         )?))
     }
 }
+
+#[derive(Debug)]
+pub struct Error(anyhow::Error);
+
+impl<'r> Responder<'r, 'static> for Error {
+    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
+        Ok(Response::new())
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        writeln!(fmt, "{:?}", self)
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl From<anyhow::Error> for Error {
+    fn from(err: anyhow::Error) -> Self {
+        Error(err)
+    }
+}
+
+pub type Result<T> = std::result::Result<T, Error>;

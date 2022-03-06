@@ -38,10 +38,11 @@ async fn main() {
     let rocket = {
         let node_registry = meteo::node::SensorNodeRegistry::new(
             connection.into(),
-        );
+        )
+        .expect("Failed to construct node registry.");
 
         let fetcher_task_rate = dotenv::var("METEO_FETCHER_TASK_RATE_SECS")
-            .expect("missing METEO_FETCHER_TASK_RATE_SECS env variable")
+            .expect("Missing METEO_FETCHER_TASK_RATE_SECS env variable")
             .parse()
             .expect("METEO_FETCHER_TASK_RATE_SECS parsing error");
 

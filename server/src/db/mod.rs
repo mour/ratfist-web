@@ -5,7 +5,6 @@ use rocket::http::Status;
 use rocket::request::{self, FromRequest, Request};
 use rocket::State;
 
-use std::convert::Into;
 use std::ops::Deref;
 
 pub mod models;
@@ -39,9 +38,9 @@ impl Deref for Db {
     }
 }
 
-impl Into<Db> for DbPooledConn {
-    fn into(self) -> Db {
-        Db(self)
+impl From<DbPooledConn> for Db {
+    fn from(db_conn: DbPooledConn) -> Db {
+        Db(db_conn)
     }
 }
 

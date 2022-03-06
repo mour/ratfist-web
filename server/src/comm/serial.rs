@@ -5,11 +5,16 @@ use serial::prelude::*;
 use std::thread;
 
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, SendError, Sender};
+use std::sync::mpsc::{Receiver, Sender};
 
 use std::io::{Read, Write};
 
+use std::time::Duration;
+
 use log::{debug, warn};
+
+use crate::utils::Result;
+use anyhow::anyhow;
 
 type MsgAndResponseChannel = (u32, String, Sender<String>);
 
@@ -17,16 +22,18 @@ type MsgAndResponseChannel = (u32, String, Sender<String>);
 pub struct CommChannelTx(Sender<MsgAndResponseChannel>);
 
 impl CommChannelTx {
-    pub fn send(
-        &self,
-        node_id: u32,
-        msg: String,
-    ) -> Result<Receiver<String>, SendError<MsgAndResponseChannel>> {
+    pub fn send(&self, node_id: u32, msg: String) -> Result<String> {
         let (response_tx, response_rx) = mpsc::channel();
 
-        self.0.send((node_id, msg, response_tx))?;
+        self.0
+            .send((node_id, msg, response_tx))
+            .map_err(|e| anyhow!("Failed to send message. {e:?}"))?;
 
-        Ok(response_rx)
+        let raw_response_msg = response_rx
+            .recv_timeout(Duration::from_secs(3))
+            .map_err(|e| anyhow::anyhow!("Error while receiving serial message. {e:?}"))?;
+
+        Ok(raw_response_msg)
     }
 }
 
@@ -34,13 +41,13 @@ fn calc_checksum(input: &str) -> u8 {
     input.as_bytes().iter().fold(0, |csum, ch| csum ^ ch)
 }
 
-fn process_incoming_msg(raw_msg: &str) -> Result<(u64, &str), ()> {
+fn process_incoming_msg(raw_msg: &str) -> Result<(u64, &str)> {
     if raw_msg.len() < 4 {
-        return Err(());
+        return Err(anyhow!("Incoming message too short.").into());
     }
 
     if raw_msg.as_bytes()[raw_msg.len() - 3] as char != '*' {
-        return Err(());
+        return Err(anyhow!("Incoming message invalid format.").into());
     }
 
     let packet_csum = u8::from_str_radix(&raw_msg[(raw_msg.len() - 2)..], 16).unwrap();
@@ -49,11 +56,15 @@ fn process_incoming_msg(raw_msg: &str) -> Result<(u64, &str), ()> {
     let calc_csum = calc_checksum(msg_str);
 
     if packet_csum != calc_csum {
-        return Err(());
+        return Err(anyhow!("Incoming message invalid checksum. Expecting 0x{calc_csum:2X}, got 0x{packet_csum:2X}.").into());
     }
 
-    let comma_pos = msg_str.find(',').ok_or(())?;
-    let transaction_id = msg_str[..comma_pos].parse().map_err(|_| ())?;
+    let comma_pos = msg_str
+        .find(',')
+        .ok_or(anyhow!("Incoming message invalid format."))?;
+    let transaction_id = msg_str[..comma_pos]
+        .parse()
+        .map_err(|e| anyhow!("Incoming message parsing error. {e:?}"))?;
     let msg_payload_str = &msg_str[(comma_pos + 1)..];
 
     Ok((transaction_id, msg_payload_str))
@@ -140,14 +151,14 @@ where
     }
 }
 
-pub fn create_serial_comm_task(serial_id: u32) -> (CommChannelTx, thread::JoinHandle<()>) {
+pub fn create_serial_comm_task(serial_id: u32) -> Result<(CommChannelTx, thread::JoinHandle<()>)> {
     let env_var_str = format!("SERIAL_PORT_{}_PATH", serial_id);
 
     let mut serial_port = serial::open(
         &dotenv::var(&env_var_str)
-            .unwrap_or_else(|_| panic!("missing {} env variable", env_var_str)),
+            .map_err(|e| anyhow!("Missing {env_var_str} env variable. {e:?}"))?,
     )
-    .expect("could not open serial port");
+    .map_err(|e| anyhow!("Could not open serial port. {e:?}"))?;
 
     let settings = serial::PortSettings {
         baud_rate: serial::Baud115200,
@@ -158,11 +169,11 @@ pub fn create_serial_comm_task(serial_id: u32) -> (CommChannelTx, thread::JoinHa
     };
     serial_port
         .configure(&settings)
-        .expect("Could not configure the serial port.");
+        .map_err(|e| anyhow!("Could not configure the serial port. {e:?}"))?;
 
     let (channel_tx, channel_rx) = mpsc::channel();
 
     let join_handle = thread::spawn(|| comm_func(channel_rx, serial_port));
 
-    (CommChannelTx(channel_tx), join_handle)
+    Ok((CommChannelTx(channel_tx), join_handle))
 }

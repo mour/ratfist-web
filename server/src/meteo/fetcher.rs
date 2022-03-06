@@ -5,10 +5,12 @@ use crate::db::DbConnPool;
 
 use crate::meteo::models::Sensor;
 use crate::meteo::node::SensorNodeRegistry;
-use crate::meteo::MeteoError;
 
 use diesel::insert_into;
 use diesel::prelude::*;
+
+use crate::utils::Result;
+use anyhow::anyhow;
 
 use log::warn;
 
@@ -17,8 +19,10 @@ use crate::utils::DateTimeUtc;
 pub fn fetcher_iteration(
     db_conn_pool: &DbConnPool,
     node_registry: &SensorNodeRegistry,
-) -> Result<(), MeteoError> {
-    let db = db_conn_pool.get().map_err(|_| MeteoError)?;
+) -> Result<()> {
+    let db = db_conn_pool
+        .get()
+        .map_err(|e| anyhow!("Failed to get DB connection. {e:?}"))?;
 
     // Get all sensors
     let sensors = {
@@ -28,14 +32,14 @@ pub fn fetcher_iteration(
         sensors::table
             .inner_join(nodes::table)
             .load::<(Sensor, Node)>(&db)
-    }
-    .map_err(|_| MeteoError)?;
+            .map_err(|e| anyhow!("{e:?}"))?
+    };
 
     let curr_time = DateTimeUtc::now();
 
     for (ref sensor, ref node) in &sensors {
         // Send message querying each sensor
-        let sens_id = sensor.public_id.try_into().unwrap();
+        let sens_id = sensor.public_id.try_into().unwrap(); // FIXME switch to map_err()?
         let node_id = node.public_id.try_into().unwrap();
 
         let measured_val = node_registry

@@ -1,7 +1,7 @@
 use rocket::serde::json::Json;
 
 use crate::meteo::models::{Measurement, Sensor, SensorTypeEnum};
-use crate::meteo::{MeteoError, MeteoResponse};
+use crate::meteo::MeteoResponse;
 
 use crate::db::models::Node;
 
@@ -15,6 +15,8 @@ use std::convert::TryInto;
 use diesel::prelude::*;
 use diesel::ExpressionMethods;
 
+use anyhow::{anyhow, Result};
+
 fn get_measurements(
     db_conn: Db,
     node_id: u32,
@@ -22,20 +24,21 @@ fn get_measurements(
     sensor_ids: IdRange,
     from_time: DateTimeUtc,
     to_time: Option<DateTimeUtc>,
-) -> Result<HashMap<u32, Vec<(DateTimeUtc, f32)>>, MeteoError> {
+) -> Result<HashMap<u32, Vec<(DateTimeUtc, f32)>>> {
     let sensor_id_vec = sensor_ids
         .into_iter()
         .map(|v| v as i32)
         .collect::<Vec<i32>>();
 
+    let db_node_id: i32 = node_id.try_into()?;
+
     let node = {
         use crate::db::schema::nodes::dsl::*;
-        let db_node_id: i32 = node_id.try_into().map_err(|_| MeteoError)?;
 
         nodes
             .filter(public_id.eq(db_node_id))
             .first::<Node>(&*db_conn)
-            .map_err(|_| MeteoError)?
+            .map_err(|e| anyhow!("No node with ID {db_node_id} in DB. {e:?}"))?
     };
 
     let sensors = {
@@ -48,7 +51,7 @@ fn get_measurements(
                     .and(sensor_type.eq(queried_sensor_type)),
             )
             .load::<Sensor>(&*db_conn)
-            .map_err(|_| MeteoError)?
+            .map_err(|e| anyhow!("Error loading sensor info for node ID {db_node_id}. {e:?}"))?
     };
 
     let now = DateTimeUtc::now();
@@ -60,7 +63,9 @@ fn get_measurements(
             .filter(measured_at.ge(&from_time))
             .filter(measured_at.le(to_time.as_ref().unwrap_or(&now)))
             .load::<Measurement>(&*db_conn)
-            .map_err(|_| MeteoError)?
+            .map_err(|e| {
+                anyhow!("Error loading measurement info for node ID {db_node_id}. {e:?}")
+            })?
     };
 
     let grouped_measurements = measurements.grouped_by(&sensors);
@@ -80,7 +85,7 @@ fn get_measurements(
             .map(|m| (m.measured_at, m.value))
             .collect();
 
-        output_map.insert(sensor.public_id as u32, measurement_pairs);
+        output_map.insert(sensor.public_id.try_into()?, measurement_pairs);
     }
 
     Ok(output_map)
@@ -115,13 +120,13 @@ pub fn get_global_structure(db_conn: Db) -> MeteoResponse<HashMap<u32, HashMap<S
 
         nodes::table
             .load::<Node>(&*db_conn)
-            .map_err(|_| MeteoError)?
+            .map_err(|e| anyhow!("Failed to load list of nodes from DB. {e:?}"))?
     };
 
     let grouped_sensors: Vec<Vec<Sensor>> = {
         Sensor::belonging_to(&nodes)
             .load::<Sensor>(&*db_conn)
-            .map_err(|_| MeteoError)?
+            .map_err(|e| anyhow!("Failed to load list of sensors from DB. {e:?}"))?
             .grouped_by(&nodes)
     };
 

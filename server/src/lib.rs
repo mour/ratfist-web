@@ -19,9 +19,6 @@ pub mod comm;
 pub mod db;
 mod utils;
 
-#[derive(Debug)]
-pub struct CoreError;
-
 embed_migrations!("migrations");
 
 pub fn run_migrations(connection: &SqliteConnection) {

@@ -5,8 +5,10 @@ use diesel::deserialize::{self, FromSql};
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Integer;
 
+use crate::utils;
+use anyhow::anyhow;
+
 use super::schema::{measurements, sensors};
-use super::MeteoError;
 
 use crate::db::models::Node;
 
@@ -56,7 +58,7 @@ impl AsRef<str> for SensorTypeEnum {
 }
 
 impl<'a> TryFrom<&'a str> for SensorTypeEnum {
-    type Error = MeteoError;
+    type Error = utils::Error;
 
     fn try_from(sensor_type_str: &'a str) -> Result<Self, Self::Error> {
         match sensor_type_str {
@@ -64,7 +66,7 @@ impl<'a> TryFrom<&'a str> for SensorTypeEnum {
             "temperature" => Ok(SensorTypeEnum::Temperature),
             "humidity" => Ok(SensorTypeEnum::Humidity),
             "light_level" => Ok(SensorTypeEnum::LightLevel),
-            _ => Err(MeteoError),
+            _ => Err(anyhow!("Invalid sensor type.").into()),
         }
     }
 }
@@ -81,7 +83,9 @@ where
             x if x == SensorTypeEnum::Temperature as i32 => Ok(SensorTypeEnum::Temperature),
             x if x == SensorTypeEnum::Humidity as i32 => Ok(SensorTypeEnum::Humidity),
             x if x == SensorTypeEnum::LightLevel as i32 => Ok(SensorTypeEnum::LightLevel),
-            _ => Err(Box::new(MeteoError)),
+            _ => Err(Box::new(utils::Error::from(anyhow!(
+                "Error parsing sensor type value from DB."
+            )))),
         }
     }
 }
@@ -97,7 +101,7 @@ where
 }
 
 impl<'a> FromParam<'a> for SensorTypeEnum {
-    type Error = MeteoError;
+    type Error = utils::Error;
 
     fn from_param(param: &'a str) -> Result<Self, Self::Error> {
         SensorTypeEnum::try_from(param)

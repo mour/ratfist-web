@@ -4,7 +4,9 @@ use i2cdev::linux::LinuxI2CMessage;
 use std::sync::{Arc, Mutex};
 
 use crate::comm::i2c;
-use crate::meteo::MeteoError;
+
+use crate::utils::Result;
+use anyhow::anyhow;
 
 use log::debug;
 
@@ -98,7 +100,7 @@ impl Bmp280 {
         press_oversampling: Oversampling,
         temp_oversampling: Oversampling,
         mode: Mode,
-    ) -> Result<Bmp280, MeteoError> {
+    ) -> Result<Bmp280> {
         // Check that we're dealing with the correct chip
         let mut id_data = [0];
         let mut id_msgs = [
@@ -109,14 +111,18 @@ impl Bmp280 {
         debug!("Reading out chip ID");
         comm_path
             .lock()
-            .map_err(|_| MeteoError)?
-            .transfer(&mut id_msgs)
-            .map_err(|_| MeteoError)?;
+            .expect("Mutex poisoned.")
+            .transfer(&mut id_msgs)?;
 
         debug!("Chip ID is {}", id_data[0]);
 
         if id_data[0] != Self::CHIP_ID_EXPECTED {
-            return Err(MeteoError);
+            return Err(anyhow!(
+                "BMP280 unexpected chip ID (0x{:X}) at address 0x{:X}",
+                id_data[0],
+                Self::CHIP_ID_REG_ADDR
+            )
+            .into());
         }
 
         debug!("Reading out BMP280 calibration data.");
@@ -130,9 +136,8 @@ impl Bmp280 {
 
         comm_path
             .lock()
-            .map_err(|_| MeteoError)?
-            .transfer(&mut calib_msgs)
-            .map_err(|_| MeteoError)?;
+            .expect("Mutex poisoned.")
+            .transfer(&mut calib_msgs)?;
 
         let calib = CalibrationData {
             dig_t1: ((calib_data[1] as u16) << 8) | (calib_data[0] as u16),
@@ -176,7 +181,7 @@ impl Bmp280 {
     }
 
     #[rustfmt::skip]
-    pub fn query_press_and_temp(&self) -> Result<(f32, f32), MeteoError> {
+    pub fn query_press_and_temp(&self) -> Result<(f32, f32)> {
 
         if self.mode != Mode::Normal {
             let ctrl_meas_reg =
@@ -191,9 +196,8 @@ impl Bmp280 {
 
             self.comm_path
                 .lock()
-                .map_err(|_| MeteoError)?
-                .transfer(&mut config_msgs)
-                .map_err(|_| MeteoError)?;
+                .expect("Mutex poisoned.")
+                .transfer(&mut config_msgs)?;
 
             // Wait times for single samples calculated from table 13
             // (3.8. Measurement Time) in the datasheet.
@@ -219,9 +223,8 @@ impl Bmp280 {
         debug!("Reading out raw BMP280 data.");
         self.comm_path
             .lock()
-            .map_err(|_| MeteoError)?
-            .transfer(&mut read_data_msgs)
-            .map_err(|_| MeteoError)?;
+            .expect("Mutex poisoned.")
+            .transfer(&mut read_data_msgs)?;
 
         let raw_press =
             (((raw_data[0] as u32) << 12) |
@@ -251,7 +254,7 @@ impl Bmp280 {
 
 
         let mut p_var1: f32 = (t_fine as f32) / 2.0 - 64000.0;
-        let mut p_var2: f32 = 
+        let mut p_var2: f32 =
             p_var1 * p_var1 * (self.calib.dig_p6 as f32) / 32768.0 +
             p_var1 * (self.calib.dig_p5 as f32) * 2.0;
         p_var2 = (p_var2 / 4.0) + ((self.calib.dig_p4 as f32) * 65536.0);
@@ -280,7 +283,7 @@ impl Bmp280 {
         press_oversampling: Oversampling,
         temp_oversampling: Oversampling,
         mode: Mode,
-    ) -> Result<(), MeteoError> {
+    ) -> Result<()> {
 
         debug!("Reconfiguring BMP280: standby_time {:?}, iir_coef {:?},\
                 press_oversampling {:?}, temp_oversampling {:?}, mode {:?}",
@@ -302,9 +305,8 @@ impl Bmp280 {
 
         self.comm_path
             .lock()
-            .map_err(|_| MeteoError)?
-            .transfer(&mut config_msgs)
-            .map_err(|_| MeteoError)?;
+            .expect("Mutex poisoned.")
+            .transfer(&mut config_msgs)?;
 
         Ok(())
     }
