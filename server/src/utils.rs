@@ -4,7 +4,10 @@ use std::collections::HashSet;
 use chrono::prelude::*;
 
 use rocket::form::{self, FromFormField, ValueField};
+use rocket::http::Status;
 use rocket::request::FromParam;
+
+use std::io::Cursor;
 
 use std::ops::Deref;
 
@@ -143,7 +146,13 @@ pub struct Error(anyhow::Error);
 
 impl<'r> Responder<'r, 'static> for Error {
     fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
-        Ok(Response::new())
+        let err_str = self.0.to_string();
+        Ok(
+            Response::build()
+                .status(Status::InternalServerError)
+                .sized_body(err_str.len(), Cursor::new(err_str))
+                .finalize()
+        )
     }
 }
 
