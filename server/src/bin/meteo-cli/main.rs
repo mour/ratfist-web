@@ -269,7 +269,7 @@ impl From<SensorTypes> for SensorTypeEnum {
             SensorTypes::Pressure => SensorTypeEnum::Pressure,
             SensorTypes::Temperature => SensorTypeEnum::Temperature,
             SensorTypes::Humidity => SensorTypeEnum::Humidity,
-            SensorTypes::LightLevel => SensorTypeEnum::Humidity,
+            SensorTypes::LightLevel => SensorTypeEnum::LightLevel,
         }
     }
 }
