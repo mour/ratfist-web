@@ -52,8 +52,8 @@ async fn main() {
             Duration::from_secs(fetcher_task_rate),
             Duration::from_secs(fetcher_task_rate),
             move |_remote| {
-                if meteo::fetcher::fetcher_iteration(&db_pool, &node_registry_clone).is_err() {
-                    warn!("Fetcher task error.");
+                if let Err(err) = meteo::fetcher::fetcher_iteration(&db_pool, &node_registry_clone) {
+                    warn!("Fetcher task error.: {err}");
                 }
             },
         );

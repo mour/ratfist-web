@@ -24,7 +24,7 @@ pub struct Tcs3472 {
 }
 
 impl Tcs3472 {
-    const I2C_ADDR: u16 = 0x77;
+    const I2C_ADDR: u16 = 0x29;
 
     const CMD_REG_MASK: u8 = 0x80;
     const CMD_REG_AUTOINCREMENT: u8 = 0x20;
@@ -41,7 +41,7 @@ impl Tcs3472 {
     const CONTROL_REG_ADDR: u8 = 0x0f;
 
     const CHIP_ID_REG_ADDR: u8 = 0x12;
-    const CHIP_ID_EXPECTED: u8 = 0x4d; //4; // 0x4d
+    const CHIP_ID_EXPECTED: u8 = 0x44;
 
     const CLEAR_DATA_REG_ADDR: u8 = 0x14;
     const CLEAR_DATA_REG_SIZE: usize = 2;
