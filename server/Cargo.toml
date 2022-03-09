@@ -3,7 +3,7 @@ name = "ratfist-server"
 description = "HTTP server providing a REST API to various sensors connected by UART or I2C"
 homepage = "https://github.com/opaleni/ratfist-server.git"
 license = "MIT"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Ondrej Palenicek <ondrej.palenicek@gmail.com>"]
 edition = "2018"
 
